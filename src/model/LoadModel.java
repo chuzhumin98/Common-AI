@@ -2,6 +2,7 @@ package model;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -23,7 +24,7 @@ public class LoadModel {
 	public Map<Character, Integer> wordIndexList; //词汇倒排表
 	public Map<String, ArrayList<Integer>> pinyin; //拼音词汇对照表
 	
-	public JSONObject[] eryuan; //每个对象是一个JSONObject,它包含键值word,post,count
+	public int[][] transferMatrix; //转移矩阵
 	
 	/**
 	 * 构造函数，只能通过getInstance()函数生成实例
@@ -34,16 +35,7 @@ public class LoadModel {
 		this.wordIndexList = new HashMap<Character, Integer>();
 		this.loadWordList();
 		this.loadPinyin();
-		this.eryuan = new JSONObject[this.wordIndexList.size()];
-		//进行该JSON对象的初始化
-		for (int i = 0; i < this.wordList.size(); i++) {
-			ArrayList<Integer> postArray = new ArrayList<Integer>(); //后缀数组
-			ArrayList<Integer> postCount = new ArrayList<Integer>(); //对应的计数
-			this.eryuan[i] = new JSONObject();
-			this.eryuan[i].put("word", this.wordList.get(i));
-			this.eryuan[i].put("post", postArray);
-			this.eryuan[i].put("count", postCount);
-		}
+		this.transferMatrix = new int [this.wordIndexList.size()][this.wordIndexList.size()];
 	}
 	
 	public static LoadModel getInstance() {
@@ -114,15 +106,10 @@ public class LoadModel {
 	 * 载入文章的数据
 	 */
 	public void loadArticles() {
-		for (int i = 10; i < 11; i++) {
+		for (int i = 0; i < 1; i++) {
 			try {
 				Scanner input = new Scanner(new File(LoadModel.datasetPath+LoadModel.datasetName[i]));
-				int count = 0;
 				while (input.hasNextLine()) {
-					count++;
-					if (count % 100 == 0) {
-						System.out.println(count);
-					}
 					JSONObject record = JSONObject.fromObject(input.nextLine());
 					String html = (String)record.get("html");
 					String title = (String)record.get("title");
@@ -131,19 +118,7 @@ public class LoadModel {
 							if (this.wordIndexList.containsKey(html.charAt(j+1))) {
 								int left = this.wordIndexList.get(html.charAt(j));
 								int right = this.wordIndexList.get(html.charAt(j+1));
-								JSONArray postArray = (JSONArray)this.eryuan[left].get("post");
-								JSONArray postCount = (JSONArray)this.eryuan[left].get("count");
-								if (!postArray.contains(right)) {
-									postArray.add(right);
-									postCount.add(1);
-									this.eryuan[left].put("post", postArray);
-									this.eryuan[left].put("count", postCount);
-								} else {
-									int index = postArray.indexOf(right);
-									int predCount = (int) postCount.get(index);
-									postCount.set(index, predCount+1);
-									this.eryuan[left].put("count", postCount);
-								}
+								this.transferMatrix[left][right]++;
 								j++;
 							} else {
 								j += 2;
@@ -153,14 +128,34 @@ public class LoadModel {
 						}
 					}
 				}
-				for (int j = 0; j < 2; j++) {
-					System.out.println(this.eryuan[j].toString());
-				}
+				System.out.println("end for read "+LoadModel.datasetName[i]);
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
+		try {
+			PrintStream output = new PrintStream("output/matrix.txt");
+			for (int i = 0; i < this.transferMatrix.length; i++) {
+				JSONObject wordInfo = new JSONObject();
+				wordInfo.put("w", this.wordList.get(i)); //word
+				JSONArray postArray = new JSONArray(); 
+				JSONArray postCount = new JSONArray();
+				for (int j = 0; j < this.transferMatrix[i].length; j++) {
+					if (this.transferMatrix[i][j] > 0) {
+						postArray.add(j);
+						postCount.add(this.transferMatrix[i][j]);
+					}
+				}
+				wordInfo.put("a", postArray); //postarray
+				wordInfo.put("c", postCount); //postcount
+				output.println(wordInfo.toString());
+			}
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 	}
 	
 	public static void main(String[] args) {
