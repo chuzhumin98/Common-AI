@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 public class HMM {
@@ -96,9 +97,31 @@ public class HMM {
 					String[] splits = line.split(" ");
 					ArrayList<Integer> pred; //二元模型的前一个
 					ArrayList<Integer> succ; //二元模型的后一个
+					ArrayList<Double> predProb = new ArrayList<Double>(); //到达前一个时的log概率
+					ArrayList<Double> succProb = new ArrayList<Double>(); //到达后一个时的log概率
+					int[][] predPoint = new int [splits.length][this.wordSize]; //记录上一个最优的位置
 					for (int i = 0; i < splits.length-1; i++) {
 						pred = this.pinyin.get(splits[i]);
 						succ = this.pinyin.get(splits[i+1]);
+						if (i == 0) { //在初始位置时需要初始化predProb信息
+							predProb.clear();
+							for (int j = 0; j < pred.size(); j++) {
+								double countPred = 0; //计算该词出现在词首的总数
+								JSONArray postCount = (JSONArray) this.eryuanTable[pred.get(j)].get("c");
+								for (int k = 0; k < postCount.size(); k++) {
+									countPred += postCount.getDouble(k);
+ 								}
+								//System.out.println(this.wordList[pred.get(j)]+":"+countPred);
+								double logProb = Math.log(countPred+1.0/pred.size()); //平滑后的log概率
+								predProb.add(logProb);
+							}
+						}
+						//设置每一对之间的概率变化
+						for (int j = 0; j < pred.size(); j++) {
+							JSONArray postArray = (JSONArray) this.eryuanTable[pred.get(j)].get("a");
+							JSONArray postCount = (JSONArray) this.eryuanTable[pred.get(j)].get("c");
+							
+						}
 					}
 				}
 			}
