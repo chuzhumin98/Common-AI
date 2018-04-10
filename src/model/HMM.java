@@ -112,7 +112,7 @@ public class HMM {
 							}
 						}
 						double[][] totalProb = new double [pred.size()][succ.size()]; //计算各对这对的概率
-						//设置每一对之间的概率变化
+						//计算每一对之间的概率变化
 						for (int j = 0; j < pred.size(); j++) {
 							double countPred = this.eryuanTable[pred.get(j)].getDouble("t");
 							JSONArray postArray = (JSONArray) this.eryuanTable[pred.get(j)].get("a");
@@ -123,16 +123,29 @@ public class HMM {
 									int index = postArray.indexOf(succ.get(k)); //对应的词汇组合的下标
 									double thisCount = postCount.getDouble(index); //获取该对词汇出现的次数
 									double logProb = Math.log((thisCount+1.0/pred.size())/(countPred+1));
-									totalProb[j][k] = logProb;
+									totalProb[j][k] = logProb + predProb.get(j);
 								} else {
 									double logProb = Math.log((1.0/pred.size())/(countPred+1));
-									totalProb[j][k] = logProb;
+									totalProb[j][k] = logProb + predProb.get(j);
 								}
 							}
 						}
+						//找出最大概率项，进行动态规划
+						succProb.clear();
 						for (int k = 0; k < succ.size(); k++) {
-							
+							int indexMax = 0; //最大概率的索引
+							for (int j = 1; j < pred.size(); j++) {
+								if (totalProb[j][k] > totalProb[indexMax][k]) {
+									indexMax = j;
+								}
+							}
+							predPoint[i+1][succ.get(k)] = pred.get(indexMax); //记录前缀节点
+							succProb.add(totalProb[indexMax][k]);
+							System.out.println(this.wordList[pred.get(indexMax)]+"-"+this.wordList[succ.get(k)]);
 						}
+						//进入新的一层循环时将succProb的数据拷贝至predProb中
+						predProb = succProb;
+						succProb = new ArrayList<Double>();
 					}
 				}
 			}
