@@ -134,6 +134,9 @@ public class ExportModel {
 				e.printStackTrace();
 			}
 		}
+	}
+	
+	public void exportEryuanTable() {
 		try {
 			PrintStream output = new PrintStream("output/eryuantabletotal.txt");
 			output.println(this.wordIndexList.size());
@@ -156,7 +159,6 @@ public class ExportModel {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
 	}
 	
 	public static void main(String[] args) {
