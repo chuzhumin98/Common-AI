@@ -141,12 +141,26 @@ public class HMM {
 							}
 							predPoint[i+1][succ.get(k)] = pred.get(indexMax); //记录前缀节点
 							succProb.add(totalProb[indexMax][k]);
-							System.out.println(this.wordList[pred.get(indexMax)]+"-"+this.wordList[succ.get(k)]);
+							//System.out.println(this.wordList[pred.get(indexMax)]+"-"+this.wordList[succ.get(k)]);
 						}
 						//进入新的一层循环时将succProb的数据拷贝至predProb中
 						predProb = succProb;
 						succProb = new ArrayList<Double>();
 					}
+					ArrayList<Integer> finishIndex = this.pinyin.get(splits[splits.length-1]);
+					int totalMaxIndex = 0; //概率最大时对应的下标
+					for (int i = 1; i < finishIndex.size(); i++) {
+						if (predProb.get(i) > predProb.get(totalMaxIndex)) {
+							totalMaxIndex = i;
+						}
+					}
+					int newIndex = finishIndex.get(totalMaxIndex); //记录当前的最优字符下标（往前推）
+					String maxProbString = this.wordList[newIndex]; //最大概率字符串		
+					for (int i = splits.length-1; i > 0; i--) {
+						newIndex = predPoint[i][newIndex];
+						maxProbString = this.wordList[newIndex] + maxProbString;
+					}
+					System.out.println(maxProbString);
 				}
 			}
 		} catch (FileNotFoundException e) {
