@@ -106,20 +106,31 @@ public class HMM {
 						if (i == 0) { //在初始位置时需要初始化predProb信息
 							predProb.clear();
 							for (int j = 0; j < pred.size(); j++) {
-								double countPred = 0; //计算该词出现在词首的总数
-								JSONArray postCount = (JSONArray) this.eryuanTable[pred.get(j)].get("c");
-								for (int k = 0; k < postCount.size(); k++) {
-									countPred += postCount.getDouble(k);
- 								}
-								//System.out.println(this.wordList[pred.get(j)]+":"+countPred);
+								double countPred = this.eryuanTable[pred.get(j)].getDouble("t");
 								double logProb = Math.log(countPred+1.0/pred.size()); //平滑后的log概率
 								predProb.add(logProb);
 							}
 						}
+						double[][] totalProb = new double [pred.size()][succ.size()]; //计算各对这对的概率
 						//设置每一对之间的概率变化
 						for (int j = 0; j < pred.size(); j++) {
+							double countPred = this.eryuanTable[pred.get(j)].getDouble("t");
 							JSONArray postArray = (JSONArray) this.eryuanTable[pred.get(j)].get("a");
 							JSONArray postCount = (JSONArray) this.eryuanTable[pred.get(j)].get("c");
+							for (int k = 0; k < succ.size(); k++) {
+								if (postArray.contains(succ.get(k))) {
+									//System.out.println(this.wordList[pred.get(j)]+"-"+this.wordList[succ.get(k)]);
+									int index = postArray.indexOf(succ.get(k)); //对应的词汇组合的下标
+									double thisCount = postCount.getDouble(index); //获取该对词汇出现的次数
+									double logProb = Math.log((thisCount+1.0/pred.size())/(countPred+1));
+									totalProb[j][k] = logProb;
+								} else {
+									double logProb = Math.log((1.0/pred.size())/(countPred+1));
+									totalProb[j][k] = logProb;
+								}
+							}
+						}
+						for (int k = 0; k < succ.size(); k++) {
 							
 						}
 					}

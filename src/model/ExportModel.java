@@ -145,14 +145,17 @@ public class ExportModel {
 				wordInfo.put("w", this.wordList.get(i)); //word
 				JSONArray postArray = new JSONArray(); 
 				JSONArray postCount = new JSONArray();
+				int countPred = 0; //计数总的以此为前缀的个数
 				for (int j = 0; j < this.transferMatrix[i].length; j++) {
 					if (this.transferMatrix[i][j] > 0) {
 						postArray.add(j);
 						postCount.add(this.transferMatrix[i][j]);
+						countPred += this.transferMatrix[i][j];
 					}
 				}
 				wordInfo.put("a", postArray); //postarray
 				wordInfo.put("c", postCount); //postcount
+				wordInfo.put("t", countPred); //total count
 				output.println(wordInfo.toString());
 			}
 		} catch (FileNotFoundException e) {
@@ -164,5 +167,6 @@ public class ExportModel {
 	public static void main(String[] args) {
 		ExportModel model = ExportModel.getInstance();
 		model.loadArticles();
+		model.exportEryuanTable();
 	}
 }
