@@ -83,9 +83,35 @@ public class HMM {
 		}
 	}
 	
+	/**
+	 * 采用HMM算法测试训练数据
+	 */
+	public void testModel() {
+		try {
+			Scanner input = new Scanner(new File(HMM.inputPath));
+			while (input.hasNextLine()) {
+				String line = input.nextLine();
+				if (line.length() > 0) {
+					System.out.println(line);
+					String[] splits = line.split(" ");
+					ArrayList<Integer> pred; //二元模型的前一个
+					ArrayList<Integer> succ; //二元模型的后一个
+					for (int i = 0; i < splits.length-1; i++) {
+						pred = this.pinyin.get(splits[i]);
+						succ = this.pinyin.get(splits[i+1]);
+					}
+				}
+			}
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
 	public static void main(String[] args) {
 		HMM hmm = new HMM();
 		hmm.readTable();
 		hmm.readPinyin();
+		hmm.testModel();
 	}
 }
