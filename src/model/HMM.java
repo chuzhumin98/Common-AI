@@ -2,6 +2,7 @@ package model;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,6 +16,7 @@ public class HMM {
 	public static String wordPinyinListPath = "data/pinyin-hanzi.txt"; //拼音汉字表
 	
 	public static String inputPath = "data/input.txt"; //输入文件
+	public static String outputPath = "data/output.txt"; //输出文件
 	
 	public int wordSize;
 	public String[] wordList; //词汇表
@@ -33,7 +35,7 @@ public class HMM {
 	 */
 	public void readTable() {
 		try {
-			Scanner input = new Scanner(new File(HMM.eryuanTablePath));
+			Scanner input = new Scanner(new File(HMM.eryuanTablePath), "gbk");
 			this.wordSize = Integer.valueOf(input.nextLine());
 			System.out.println("word size:"+wordSize);
 			this.eryuanTable = new JSONObject [wordSize];
@@ -90,6 +92,7 @@ public class HMM {
 	public void testModel() {
 		try {
 			Scanner input = new Scanner(new File(HMM.inputPath));
+			PrintStream output = new PrintStream(new File(HMM.outputPath));
 			while (input.hasNextLine()) {
 				String line = input.nextLine();
 				if (line.length() > 0) {
@@ -161,6 +164,7 @@ public class HMM {
 						maxProbString = this.wordList[newIndex] + maxProbString;
 					}
 					System.out.println(maxProbString);
+					output.println(maxProbString);
 				}
 			}
 		} catch (FileNotFoundException e) {
@@ -169,8 +173,26 @@ public class HMM {
 		}
 	}
 	
+	/**
+	 * xxx.jar (-拼音汉字对应表  -二元矩阵表   -输入文件  -输出文件)
+	 * 
+	 * @param args
+	 */
 	public static void main(String[] args) {
+		System.out.println("this is HMM.java");
 		HMM hmm = new HMM();
+		if (args.length >= 1) {
+			HMM.wordPinyinListPath = args[0];
+		}
+		if (args.length >= 2) {
+			HMM.eryuanTablePath = args[1];
+		}
+		if (args.length >= 3) {
+			HMM.inputPath = args[2];
+		}
+		if (args.length >= 4) {
+			HMM.outputPath = args[3];
+		}
 		hmm.readTable();
 		hmm.readPinyin();
 		hmm.testModel();

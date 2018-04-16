@@ -108,11 +108,26 @@ public class ExportModel {
 		this.transferMatrix = new int [this.wordIndexList.size()][this.wordIndexList.size()];
 		for (int i = 0; i < this.datasetName.length; i++) {
 			try {
-				Scanner input = new Scanner(new File(ExportModel.datasetPath+ExportModel.datasetName[i]));
+				Scanner input = new Scanner(new File(ExportModel.datasetPath+ExportModel.datasetName[i]), "utf-8");
 				while (input.hasNextLine()) {
 					JSONObject record = JSONObject.fromObject(input.nextLine());
+					//System.out.println(record);
 					String html = (String)record.get("html");
 					String title = (String)record.get("title");
+					for (int j = 0; j < title.length()-1; ) {
+						if (this.wordIndexList.containsKey(title.charAt(j))) {
+							if (this.wordIndexList.containsKey(title.charAt(j+1))) {
+								int left = this.wordIndexList.get(title.charAt(j));
+								int right = this.wordIndexList.get(title.charAt(j+1));
+								this.transferMatrix[left][right]++;
+								j++;
+							} else {
+								j += 2;
+							}
+						} else {
+							j++;
+						}
+					}
 					for (int j = 0; j < html.length()-1; ) {
 						if (this.wordIndexList.containsKey(html.charAt(j))) {
 							if (this.wordIndexList.containsKey(html.charAt(j+1))) {
@@ -136,9 +151,14 @@ public class ExportModel {
 		}
 	}
 	
-	public void exportEryuanTable() {
+	/**
+	 * 输出二元模型到文件中
+	 * 
+	 * @param path
+	 */
+	public void exportEryuanTable(String path) {
 		try {
-			PrintStream output = new PrintStream("output/eryuantabletotal.txt");
+			PrintStream output = new PrintStream(path);
 			output.println(this.wordIndexList.size());
 			for (int i = 0; i < this.transferMatrix.length; i++) {
 				JSONObject wordInfo = new JSONObject();
@@ -164,9 +184,29 @@ public class ExportModel {
 		}
 	}
 	
+	/**
+	 * 参数格式 xxx.jar (-拼音汉字表路径   -一二级汉字路径  -训练新闻文件夹路径  -输出结果路径)
+	 * 后面的参数都为可选参数
+	 * 
+	 * @param args
+	 */
 	public static void main(String[] args) {
 		ExportModel model = ExportModel.getInstance();
+		System.out.println("this is ExportModel.java");
+		String outPath = "output/eryuantabletotal.txt";
+		if (args.length >= 1) {
+			ExportModel.wordPinyinListPath = args[0];
+		}
+		if (args.length >= 2) {
+			ExportModel.wordListPath = args[1];
+		}
+		if (args.length >= 3) {
+			ExportModel.datasetPath = args[2];
+		}
+		if (args.length >= 4) {
+			outPath = args[3];
+		}
 		model.loadArticles();
-		model.exportEryuanTable();
+		model.exportEryuanTable(outPath);
 	}
 }
