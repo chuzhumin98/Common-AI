@@ -8,5 +8,10 @@
 	<classpathentry kind="lib" path="lib/json/commons-logging-1.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/json/ezmorph-1.0.6.jar"/>
 	<classpathentry kind="lib" path="lib/json/json-lib-2.4-jdk15.jar"/>
+	<classpathentry kind="lib" path="lib/segment/mmseg4j-all-1.8.6.jar"/>
+	<classpathentry kind="lib" path="lib/segment/mmseg4j-all-with-dic-1.8.6.jar"/>
+	<classpathentry kind="lib" path="lib/segment/mmseg4j-analysis-1.9.1.jar"/>
+	<classpathentry kind="lib" path="lib/segment/mmseg4j-core-1.10.0.jar"/>
+	<classpathentry kind="lib" path="lib/segment/lucene-core-3.5.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
