@@ -22,7 +22,10 @@ public class ExportModel {
 	
 	public ArrayList<Character> wordList; //词汇表
 	public Map<Character, Integer> wordIndexList; //词汇倒排表
+	
+	public ArrayList<String> pinyinString; //记录各拼音的索引值
 	public Map<String, ArrayList<Integer>> pinyin; //拼音词汇对照表
+	public int[] wordPinyinIndex; //各词汇所对应的拼音索引
 	
 	public int[][] transferMatrix; //转移矩阵
 	
@@ -33,6 +36,7 @@ public class ExportModel {
 		this.wordList = new ArrayList<Character>();
 		this.pinyin = new HashMap<String, ArrayList<Integer>>();
 		this.wordIndexList = new HashMap<Character, Integer>();
+		this.pinyinString = new ArrayList<String>();
 		this.loadWordList();
 		this.loadPinyin();
 	}
@@ -70,15 +74,18 @@ public class ExportModel {
 		try {
 			Scanner input = new Scanner(new File(ExportModel.wordPinyinListPath), "gbk");
 			int countTerm = 0; //不同term的个数
+			this.wordPinyinIndex = new int [this.wordIndexList.size()];
 			while (input.hasNextLine()) {
 				String line = input.nextLine();
 				if (line.length() == 0) continue;
 				String[] splits = line.split(" ");
+				this.pinyinString.add(splits[0]);
 				ArrayList<Integer> words = new ArrayList<Integer>();
 				for (int i = 1; i < splits.length; i++) {
 					char thisWord = splits[i].charAt(0);
 					if (this.wordIndexList.containsKey(thisWord)) {
 						words.add(this.wordIndexList.get(thisWord));
+						this.wordPinyinIndex[this.wordIndexList.get(thisWord)] = this.pinyinString.size() - 1;
 					}
 				}
 				countTerm += words.size();
@@ -114,20 +121,7 @@ public class ExportModel {
 					//System.out.println(record);
 					String html = (String)record.get("html");
 					String title = (String)record.get("title");
-					for (int j = 0; j < title.length()-1; ) {
-						if (this.wordIndexList.containsKey(title.charAt(j))) {
-							if (this.wordIndexList.containsKey(title.charAt(j+1))) {
-								int left = this.wordIndexList.get(title.charAt(j));
-								int right = this.wordIndexList.get(title.charAt(j+1));
-								this.transferMatrix[left][right]++;
-								j++;
-							} else {
-								j += 2;
-							}
-						} else {
-							j++;
-						}
-					}
+					html = title + " " + html; //将两部分信息结合起来
 					for (int j = 0; j < html.length()-1; ) {
 						if (this.wordIndexList.containsKey(html.charAt(j))) {
 							if (this.wordIndexList.containsKey(html.charAt(j+1))) {
