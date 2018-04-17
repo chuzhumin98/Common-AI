@@ -167,9 +167,16 @@ public class ExportModel {
 						countPred += this.transferMatrix[i][j];
 					}
 				}
+				int countSucc = 0; //计数总的以此为后继的个数
+				for (int j = 0; j < this.transferMatrix.length; j++) {
+					if (this.transferMatrix[j][i] > 0) {
+						countSucc += this.transferMatrix[j][i];
+					}
+				}
 				wordInfo.put("a", postArray); //postarray
 				wordInfo.put("c", postCount); //postcount
 				wordInfo.put("t", countPred); //total count
+				wordInfo.put("pt", countSucc); //post total count
 				output.println(wordInfo.toString());
 			}
 		} catch (FileNotFoundException e) {
@@ -187,7 +194,7 @@ public class ExportModel {
 	public static void main(String[] args) {
 		ExportModel model = ExportModel.getInstance();
 		System.out.println("this is ExportModel.java");
-		String outPath = "output/eryuantabletotal.txt";
+		String outPath = "output/eryuantabletotal_2.txt";
 		if (args.length >= 1) {
 			ExportModel.wordPinyinListPath = args[0];
 		}

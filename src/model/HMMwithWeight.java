@@ -12,12 +12,12 @@ import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 public class HMMwithWeight {
-	public static String eryuanTablePath = "output/eryuantabletotal.txt"; //二元表的位置
+	public static String eryuanTablePath = "output/eryuantabletotal_2.txt"; //二元表的位置
 	public static String wordPinyinListPath = "data/pinyin-hanzi.txt"; //拼音汉字表
-	public static String pinyinTablePath = "output/pinyintabletotal_1.txt"; //拼音转换表
+	public static String pinyinTablePath = "output/pinyintabletotal_IKC.txt"; //拼音转换表
 	
 	public static String inputPath = "data/input.txt"; //输入文件
-	public static String outputPath = "data/output2.txt"; //输出文件
+	public static String outputPath = "data/output4.txt"; //输出文件
 	
 	public int wordSize;
 	public String[] wordList; //词汇表
@@ -40,7 +40,7 @@ public class HMMwithWeight {
 	 */
 	public void readTable() {
 		try {
-			Scanner input = new Scanner(new File(HMMwithWeight.eryuanTablePath), "gbk");
+			Scanner input = new Scanner(new File(HMMwithWeight.eryuanTablePath),"utf-8");
 			this.wordSize = Integer.valueOf(input.nextLine());
 			System.out.println("word size:"+wordSize);
 			this.eryuanTable = new JSONObject [wordSize];
@@ -121,7 +121,6 @@ public class HMMwithWeight {
 		try {
 			Scanner input = new Scanner(new File(HMMwithWeight.inputPath));
 			PrintStream output = new PrintStream(new File(HMMwithWeight.outputPath));
-			double w = 0.95; //分配给转换关系的权重，另一部分为词频信息
 			while (input.hasNextLine()) {
 				String line = input.nextLine();
 				if (line.length() > 0) {
@@ -137,7 +136,8 @@ public class HMMwithWeight {
 						succ = this.pinyin.get(splits[i+1]);
 						int predIndex = this.pinyinIndex.get(splits[i]);
 						int succIndex = this.pinyinIndex.get(splits[i+1]);
-						double eta = Math.log(this.pinyinTable[predIndex][succIndex]+10); //设置这一组词项变化的权重
+						double eta = Math.min(Math.log(this.pinyinTable[predIndex][succIndex]+1)/Math.log(3), 14); //设置这一组词项变化的权重
+						double w = 0.70 + eta * 0.01; //分配给转换关系的权重，另一部分为词频信息
 						if (i == 0) { //在初始位置时需要初始化predProb信息
 							predProb.clear();
 							for (int j = 0; j < pred.size(); j++) {
@@ -153,17 +153,17 @@ public class HMMwithWeight {
 							JSONArray postArray = (JSONArray) this.eryuanTable[pred.get(j)].get("a");
 							JSONArray postCount = (JSONArray) this.eryuanTable[pred.get(j)].get("c");
 							for (int k = 0; k < succ.size(); k++) {
-								double countSucc = this.eryuanTable[succ.get(k)].getDouble("t");
+								double countSucc = this.eryuanTable[succ.get(k)].getDouble("pt");
 								if (postArray.contains(succ.get(k))) {
 									//System.out.println(this.wordList[pred.get(j)]+"-"+this.wordList[succ.get(k)]);
 									int index = postArray.indexOf(succ.get(k)); //对应的词汇组合的下标
 									double thisCount = postCount.getDouble(index); //获取该对词汇出现的次数
 									double logProb = Math.log((thisCount+1.0/pred.size())
-											/(countPred+1))*eta*w + Math.log(countSucc)*(1-w);
+											/(countPred+1))*w + Math.log(countSucc+1)*(1-w)/2;
 									totalProb[j][k] = logProb + predProb.get(j);
 								} else {
 									double logProb = Math.log((1.0/pred.size())/(countPred+1))
-											*eta*w + Math.log(countSucc)*(1-w);
+											*w + Math.log(countSucc+1)*(1-w)/2;
 									totalProb[j][k] = logProb + predProb.get(j);
 								}
 							}

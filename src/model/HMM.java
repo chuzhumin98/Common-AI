@@ -12,7 +12,7 @@ import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 public class HMM {
-	public static String eryuanTablePath = "output/eryuantabletotal.txt"; //二元表的位置
+	public static String eryuanTablePath = "output/eryuantabletotal_2.txt"; //二元表的位置
 	public static String wordPinyinListPath = "data/pinyin-hanzi.txt"; //拼音汉字表
 	
 	public static String inputPath = "data/input.txt"; //输入文件
@@ -35,7 +35,7 @@ public class HMM {
 	 */
 	public void readTable() {
 		try {
-			Scanner input = new Scanner(new File(HMM.eryuanTablePath), "gbk");
+			Scanner input = new Scanner(new File(HMM.eryuanTablePath), "utf-8");
 			this.wordSize = Integer.valueOf(input.nextLine());
 			System.out.println("word size:"+wordSize);
 			this.eryuanTable = new JSONObject [wordSize];
@@ -93,6 +93,7 @@ public class HMM {
 		try {
 			Scanner input = new Scanner(new File(HMM.inputPath));
 			PrintStream output = new PrintStream(new File(HMM.outputPath));
+			double w = 0.95; //权值分配
 			while (input.hasNextLine()) {
 				String line = input.nextLine();
 				if (line.length() > 0) {
@@ -121,14 +122,15 @@ public class HMM {
 							JSONArray postArray = (JSONArray) this.eryuanTable[pred.get(j)].get("a");
 							JSONArray postCount = (JSONArray) this.eryuanTable[pred.get(j)].get("c");
 							for (int k = 0; k < succ.size(); k++) {
+								double countSucc = this.eryuanTable[succ.get(k)].getDouble("pt");
 								if (postArray.contains(succ.get(k))) {
 									//System.out.println(this.wordList[pred.get(j)]+"-"+this.wordList[succ.get(k)]);
 									int index = postArray.indexOf(succ.get(k)); //对应的词汇组合的下标
 									double thisCount = postCount.getDouble(index); //获取该对词汇出现的次数
-									double logProb = Math.log((thisCount+1.0/pred.size())/(countPred+1));
+									double logProb = Math.log((thisCount+1.0/pred.size())/(countPred+1))*w+Math.log(countSucc)*(1-w);
 									totalProb[j][k] = logProb + predProb.get(j);
 								} else {
-									double logProb = Math.log((1.0/pred.size())/(countPred+1));
+									double logProb = Math.log((1.0/pred.size())/(countPred+1))*w+Math.log(countSucc+1)*(1-w);
 									totalProb[j][k] = logProb + predProb.get(j);
 								}
 							}

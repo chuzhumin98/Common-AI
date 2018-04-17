@@ -1,5 +1,6 @@
 package segment;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -7,12 +8,15 @@ import java.io.PrintStream;
 import java.io.StringReader;
 import java.util.Scanner;
 
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.Token;
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.mira.lucene.analysis.IK_CAnalyzer;
 
 import com.chenlb.mmseg4j.analysis.MaxWordAnalyzer;
 
 import model.ExportModel;
+import net.paoding.analysis.analyzer.PaodingAnalyzer;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
@@ -35,7 +39,8 @@ public class Segment {
 		for (int i = 0; i < ExportModel.datasetName.length; i++) {
 			try {
 				Scanner input = new Scanner(new File(ExportModel.datasetPath+ExportModel.datasetName[i]), "utf-8");
-				MaxWordAnalyzer analyzer = new MaxWordAnalyzer();
+				//Analyzer analyzer = new IK_CAnalyzer();
+				Analyzer analyzer = new PaodingAnalyzer(); 
 				while (input.hasNextLine()) {
 					JSONObject record = JSONObject.fromObject(input.nextLine());
 					//System.out.println(record);
@@ -43,10 +48,10 @@ public class Segment {
 					String title = (String)record.get("title");
 					StringReader reader = new StringReader(title+" "+html);  
 				    TokenStream ts = analyzer.tokenStream("", reader);  
-				    CharTermAttribute term = ts.getAttribute(CharTermAttribute.class);  
+				    Token t;  
 				    try {
-						while (ts.incrementToken()) {  
-							String splitWords = term.toString(); 
+						while ((t = ts.next()) != null) {  
+							String splitWords = t.term(); 
 							if (splitWords.length() >= 2) {
 								//System.out.println(splitWords);
 								for (int j = 0; j < splitWords.length()-1; ) {
@@ -74,7 +79,6 @@ public class Segment {
 				    reader.close();  
 					
 				}
-				analyzer.close();
 				System.out.println("end for read "+ExportModel.datasetName[i]);
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
@@ -108,6 +112,6 @@ public class Segment {
 	public static void main(String[] args) {
 		Segment seg = new Segment();
 		seg.loadArticles();
-		seg.exportPinyinTable("output/pinyintabletotal.txt");
+		seg.exportPinyinTable("output/pinyintabletotal_Paoding.txt");
 	}
 }
