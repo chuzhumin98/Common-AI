@@ -8,6 +8,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
+import com.mindflow.py4j.PinyinConverter;
+import com.mindflow.py4j.exception.IllegalPinyinException;
+
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
@@ -17,7 +20,7 @@ public class HMMwithWeight {
 	public static String pinyinTablePath = "output/pinyintabletotal_IKC.txt"; //拼音转换表
 	
 	public static String inputPath = "data/input.txt"; //输入文件
-	public static String outputPath = "data/output4.txt"; //输出文件
+	public static String outputPath = "data/output6.txt"; //输出文件
 	
 	public int wordSize;
 	public String[] wordList; //词汇表
@@ -119,6 +122,7 @@ public class HMMwithWeight {
 	 */
 	public void testModel() {
 		try {
+			PinyinConverter converter = new PinyinConverter();
 			Scanner input = new Scanner(new File(HMMwithWeight.inputPath));
 			PrintStream output = new PrintStream(new File(HMMwithWeight.outputPath));
 			while (input.hasNextLine()) {
@@ -157,6 +161,20 @@ public class HMMwithWeight {
 							JSONArray postArray = (JSONArray) this.eryuanTable[pred.get(j)].get("a");
 							JSONArray postCount = (JSONArray) this.eryuanTable[pred.get(j)].get("c");
 							for (int k = 0; k < succ.size(); k++) {
+								String wordPeidui = this.wordList[pred.get(j)]+this.wordList[succ.get(k)];
+								boolean shouldPenalty = false; //需要做出惩罚
+								try {
+									String pinyins = converter.getPinyin(wordPeidui);
+									String[] pinyin2 = pinyins.split(" ");
+									if (!pinyin2[0].equals(splits[i]) || !pinyin2[1].equals(splits[i+1])) {
+										shouldPenalty = true;
+										//System.out.println(splits[i]+" "+splits[i+1]+": "+wordPeidui+" - "+pinyins);
+									}
+								} catch (IllegalPinyinException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
+								
 								double countSucc = this.eryuanTable[succ.get(k)].getDouble("pt");
 								if (postArray.contains(succ.get(k))) {
 									//System.out.println(this.wordList[pred.get(j)]+"-"+this.wordList[succ.get(k)]);
@@ -164,6 +182,10 @@ public class HMMwithWeight {
 									double thisCount = postCount.getDouble(index); //获取该对词汇出现的次数
 									double logProb = Math.log((thisCount+1.0/pred.size())
 											/(countPred+1))*w + Math.log((countSucc+1.0)/totalSuccCount)*(1-w);
+									if (shouldPenalty) {
+										double avg = Math.log(1.0/(1+pred.size()))*w + Math.log(1.0/(1+succ.size()))*(1-w);
+										logProb = Math.min(logProb, avg);
+									} 
 									totalProb[j][k] = logProb + predProb.get(j);
 								} else {
 									double logProb = Math.log((1.0/pred.size())/(countPred+1))

@@ -15,8 +15,7 @@ public class ThreadSafeTest {
     public static void main(String[] args) {
 
         final String[] arr = {"大夫", "重庆银行", "长沙银行", "便宜坊", "西藏", "藏宝图", "出差", "参加", "列车长"
-        		,"绿帽子","一撙酒","苟利国家生死以,岂因祸福避趋之.或许你以为只是这样吗？那你就真的太过于Naive了，哈哈哈哈哈，不要想了"
-        				+ "c++123"};
+        		,"绿帽子","一撙酒","为什么"};
         final Converter converter = new PinyinConverter();
 
         int threadNum = 1;
