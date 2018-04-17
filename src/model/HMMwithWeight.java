@@ -137,7 +137,7 @@ public class HMMwithWeight {
 						int predIndex = this.pinyinIndex.get(splits[i]);
 						int succIndex = this.pinyinIndex.get(splits[i+1]);
 						double eta = Math.min(Math.log(this.pinyinTable[predIndex][succIndex]+1)/Math.log(3), 14); //设置这一组词项变化的权重
-						double w = 0.70 + eta * 0.01; //分配给转换关系的权重，另一部分为词频信息
+						double w = 0.85 + eta * 0.01; //分配给转换关系的权重，另一部分为词频信息
 						if (i == 0) { //在初始位置时需要初始化predProb信息
 							predProb.clear();
 							for (int j = 0; j < pred.size(); j++) {
@@ -147,6 +147,10 @@ public class HMMwithWeight {
 							}
 						}
 						double[][] totalProb = new double [pred.size()][succ.size()]; //计算各对这对的概率
+						Double totalSuccCount = 0.0; //P(w_i)的分母部分
+						for (int k = 0; k < succ.size(); k++) {
+							totalSuccCount += this.eryuanTable[succ.get(k)].getDouble("pt");
+						}
 						//计算每一对之间的概率变化
 						for (int j = 0; j < pred.size(); j++) {
 							double countPred = this.eryuanTable[pred.get(j)].getDouble("t");
@@ -159,11 +163,11 @@ public class HMMwithWeight {
 									int index = postArray.indexOf(succ.get(k)); //对应的词汇组合的下标
 									double thisCount = postCount.getDouble(index); //获取该对词汇出现的次数
 									double logProb = Math.log((thisCount+1.0/pred.size())
-											/(countPred+1))*w + Math.log(countSucc+1)*(1-w)/2;
+											/(countPred+1))*w + Math.log((countSucc+1.0)/totalSuccCount)*(1-w);
 									totalProb[j][k] = logProb + predProb.get(j);
 								} else {
 									double logProb = Math.log((1.0/pred.size())/(countPred+1))
-											*w + Math.log(countSucc+1)*(1-w)/2;
+											*w + Math.log((countSucc+1.0)/totalSuccCount)*(1-w);
 									totalProb[j][k] = logProb + predProb.get(j);
 								}
 							}

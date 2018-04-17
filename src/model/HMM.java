@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
+import com.mindflow.py4j.PinyinConverter;
+
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
@@ -91,6 +93,7 @@ public class HMM {
 	 */
 	public void testModel() {
 		try {
+			PinyinConverter coverter = new PinyinConverter();
 			Scanner input = new Scanner(new File(HMM.inputPath));
 			PrintStream output = new PrintStream(new File(HMM.outputPath));
 			double w = 0.95; //权值分配
@@ -127,10 +130,12 @@ public class HMM {
 									//System.out.println(this.wordList[pred.get(j)]+"-"+this.wordList[succ.get(k)]);
 									int index = postArray.indexOf(succ.get(k)); //对应的词汇组合的下标
 									double thisCount = postCount.getDouble(index); //获取该对词汇出现的次数
-									double logProb = Math.log((thisCount+1.0/pred.size())/(countPred+1))*w+Math.log(countSucc)*(1-w);
+									double logProb = Math.log((thisCount+1.0/pred.size())/(countPred+1.0))*w
+											+Math.log(countSucc+1.0/succ.size())*(1-w);
 									totalProb[j][k] = logProb + predProb.get(j);
 								} else {
-									double logProb = Math.log((1.0/pred.size())/(countPred+1))*w+Math.log(countSucc+1)*(1-w);
+									double logProb = Math.log((1.0/pred.size())/(countPred+1))*w
+											+Math.log(countSucc+1.0/succ.size())*(1-w);
 									totalProb[j][k] = logProb + predProb.get(j);
 								}
 							}
