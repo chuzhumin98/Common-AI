@@ -2,11 +2,19 @@ package model;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.Token;
+import org.apache.lucene.analysis.TokenStream;
+import org.mira.lucene.analysis.IK_CAnalyzer;
+
 import java.util.Scanner;
 
 import net.sf.json.JSONArray;
@@ -28,6 +36,7 @@ public class ExportModel {
 	public int[] wordPinyinIndex; //各词汇所对应的拼音索引
 	
 	public int[][] transferMatrix; //转移矩阵
+	public int[] pi; //估计初始概率矩阵
 	
 	/**
 	 * 构造函数，只能通过getInstance()函数生成实例
@@ -112,7 +121,10 @@ public class ExportModel {
 	 * 载入文章的数据
 	 */
 	public void loadArticles() {
-		this.transferMatrix = new int [this.wordIndexList.size()][this.wordIndexList.size()];
+		int wordSize = this.wordIndexList.size();
+		this.transferMatrix = new int [wordSize][wordSize];
+		this.pi = new int [wordSize];
+		Analyzer analyzer = new IK_CAnalyzer();
 		for (int i = 0; i < this.datasetName.length; i++) {
 			try {
 				Scanner input = new Scanner(new File(ExportModel.datasetPath+ExportModel.datasetName[i]), "utf-8");
@@ -136,9 +148,25 @@ public class ExportModel {
 							j++;
 						}
 					}
+					StringReader reader = new StringReader(html);   
+				    TokenStream ts = analyzer.tokenStream("", reader);  
+				    Token t;  
+				    while ((t = ts.next()) != null) {  
+						String splitWords = t.term();
+						if (splitWords.length() >= 2) {
+							if (this.wordIndexList.containsKey(splitWords.charAt(0))) {
+								int firstwordIndex = this.wordIndexList.get(splitWords.charAt(0));
+								this.pi[firstwordIndex]++;
+							}
+						}
+				    }
+				    reader.close();
 				}
 				System.out.println("end for read "+ExportModel.datasetName[i]);
 			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
@@ -177,6 +205,7 @@ public class ExportModel {
 				wordInfo.put("c", postCount); //postcount
 				wordInfo.put("t", countPred); //total count
 				wordInfo.put("pt", countSucc); //post total count
+				wordInfo.put("pi", this.pi[i]); //pi vector
 				output.println(wordInfo.toString());
 			}
 		} catch (FileNotFoundException e) {
@@ -194,7 +223,7 @@ public class ExportModel {
 	public static void main(String[] args) {
 		ExportModel model = ExportModel.getInstance();
 		System.out.println("this is ExportModel.java");
-		String outPath = "output/eryuantabletotal_2.txt";
+		String outPath = "output/eryuantabletotal_3.txt";
 		if (args.length >= 1) {
 			ExportModel.wordPinyinListPath = args[0];
 		}

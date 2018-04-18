@@ -14,7 +14,7 @@ import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 public class HMM {
-	public static String eryuanTablePath = "output/eryuantabletotal_2.txt"; //二元表的位置
+	public static String eryuanTablePath = "output/eryuantabletotal_3.txt"; //二元表的位置
 	public static String wordPinyinListPath = "data/pinyin-hanzi.txt"; //拼音汉字表
 	
 	public static String inputPath = "data/input.txt"; //输入文件
@@ -113,7 +113,7 @@ public class HMM {
 						if (i == 0) { //在初始位置时需要初始化predProb信息
 							predProb.clear();
 							for (int j = 0; j < pred.size(); j++) {
-								double countPred = this.eryuanTable[pred.get(j)].getDouble("t");
+								double countPred = this.eryuanTable[pred.get(j)].getDouble("pi");
 								double logProb = Math.log(countPred+1.0/pred.size()); //平滑后的log概率
 								predProb.add(logProb);
 							}
