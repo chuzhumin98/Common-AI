@@ -130,11 +130,11 @@ public class HMM {
 									//System.out.println(this.wordList[pred.get(j)]+"-"+this.wordList[succ.get(k)]);
 									int index = postArray.indexOf(succ.get(k)); //对应的词汇组合的下标
 									double thisCount = postCount.getDouble(index); //获取该对词汇出现的次数
-									double logProb = Math.log((thisCount+1.0/pred.size())/(countPred+1.0))*w
+									double logProb = Math.log((thisCount+1.0/succ.size())/(countPred+1.0))*w
 											+Math.log(countSucc+1.0/succ.size())*(1-w);
 									totalProb[j][k] = logProb + predProb.get(j);
 								} else {
-									double logProb = Math.log((1.0/pred.size())/(countPred+1))*w
+									double logProb = Math.log((1.0/succ.size())/(countPred+1))*w
 											+Math.log(countSucc+1.0/succ.size())*(1-w);
 									totalProb[j][k] = logProb + predProb.get(j);
 								}

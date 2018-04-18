@@ -56,9 +56,22 @@ public class PinyinConverter implements Converter {
 				throw new IllegalPinyinException("pinyin array is empty, char:"+chs[i]+",chinese:"+chinese);
 			}
 			if(py_arr.length==1){
-				py_sb.append(py_arr[0]+" ");
+				if (py_arr[0].equals("lve")) {
+					py_sb.append("lue ");
+				} else if (py_arr[0].equals("nve")) {
+					py_sb.append("nue ");
+				} else {
+					py_sb.append(py_arr[0]+" ");
+				}
+				
 			}else if(py_arr.length==2 && py_arr[0].equals(py_arr[1])){
-				py_sb.append(py_arr[0]+" ");
+				if (py_arr[0].equals("lve")) {
+					py_sb.append("lue ");
+				} else if (py_arr[0].equals("nve")) {
+					py_sb.append("nue ");
+				} else {
+					py_sb.append(py_arr[0]+" ");
+				}
 			}else{
 				String resultPy = null, defaultPy = null;;
 				for (String py : py_arr) {
@@ -118,7 +131,13 @@ public class PinyinConverter implements Converter {
 						resultPy = py_arr[0];
 					}
 				}
-				py_sb.append(resultPy +" ");
+				if (resultPy.equals("lve")) {
+					py_sb.append("lue ");
+				} else if (resultPy.equals("nve")) {
+					py_sb.append("nue ");
+				} else {
+					py_sb.append(resultPy+" ");
+				}
 			}
 		}
 		

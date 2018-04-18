@@ -17,10 +17,10 @@ import net.sf.json.JSONObject;
 public class HMMwithWeight {
 	public static String eryuanTablePath = "output/eryuantabletotal_2.txt"; //二元表的位置
 	public static String wordPinyinListPath = "data/pinyin-hanzi.txt"; //拼音汉字表
-	public static String pinyinTablePath = "output/pinyintabletotal_IKC.txt"; //拼音转换表
+	public static String pinyinTablePath = "output/pinyintabletotal_IKC2.txt"; //拼音转换表
 	
 	public static String inputPath = "data/input.txt"; //输入文件
-	public static String outputPath = "data/output6.txt"; //输出文件
+	public static String outputPath = "data/output61.txt"; //输出文件
 	
 	public int wordSize;
 	public String[] wordList; //词汇表
@@ -183,12 +183,12 @@ public class HMMwithWeight {
 									double logProb = Math.log((thisCount+1.0/pred.size())
 											/(countPred+1))*w + Math.log((countSucc+1.0)/totalSuccCount)*(1-w);
 									if (shouldPenalty) {
-										double avg = Math.log(1.0/(1+pred.size()))*w + Math.log(1.0/(1+succ.size()))*(1-w);
+										double avg = Math.log(1.0/(1+succ.size()))*w + Math.log(1.0/(1+succ.size()))*(1-w);
 										logProb = Math.min(logProb, avg);
 									} 
 									totalProb[j][k] = logProb + predProb.get(j);
 								} else {
-									double logProb = Math.log((1.0/pred.size())/(countPred+1))
+									double logProb = Math.log((1.0/succ.size())/(countPred+1))
 											*w + Math.log((countSucc+1.0)/totalSuccCount)*(1-w);
 									totalProb[j][k] = logProb + predProb.get(j);
 								}

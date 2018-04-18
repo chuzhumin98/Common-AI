@@ -14,6 +14,8 @@ import org.apache.lucene.analysis.TokenStream;
 import org.mira.lucene.analysis.IK_CAnalyzer;
 
 import com.chenlb.mmseg4j.analysis.MaxWordAnalyzer;
+import com.mindflow.py4j.PinyinConverter;
+import com.mindflow.py4j.exception.IllegalPinyinException;
 
 import model.ExportModel;
 import net.paoding.analysis.analyzer.PaodingAnalyzer;
@@ -38,41 +40,41 @@ public class Segment {
 	public void loadArticles() {
 		for (int i = 0; i < ExportModel.datasetName.length; i++) {
 			try {
+				PinyinConverter converter = new PinyinConverter();
 				Scanner input = new Scanner(new File(ExportModel.datasetPath+ExportModel.datasetName[i]), "utf-8");
-				//Analyzer analyzer = new IK_CAnalyzer();
-				Analyzer analyzer = new PaodingAnalyzer(); 
+				Analyzer analyzer = new IK_CAnalyzer();
+				//Analyzer analyzer = new PaodingAnalyzer(); 
 				while (input.hasNextLine()) {
 					JSONObject record = JSONObject.fromObject(input.nextLine());
 					//System.out.println(record);
 					String html = (String)record.get("html");
 					String title = (String)record.get("title");
 					StringReader reader = new StringReader(title+" "+html);  
+					//reader = new StringReader("清华大学计算机系");  
 				    TokenStream ts = analyzer.tokenStream("", reader);  
 				    Token t;  
 				    try {
 						while ((t = ts.next()) != null) {  
 							String splitWords = t.term(); 
+							//System.out.println(splitWords);
 							if (splitWords.length() >= 2) {
 								//System.out.println(splitWords);
-								for (int j = 0; j < splitWords.length()-1; ) {
-									if (this.model.wordIndexList.containsKey(splitWords.charAt(j))) {
-										if (this.model.wordIndexList.containsKey(splitWords.charAt(j+1))) {
-											int left = this.model.wordIndexList.get(splitWords.charAt(j));
-											int right = this.model.wordIndexList.get(splitWords.charAt(j+1));
-											int leftPinyin = this.model.wordPinyinIndex[left];
-											int rightPinyin = this.model.wordPinyinIndex[right];
-											this.pinyinCount[leftPinyin][rightPinyin]++;
-											j++;
-										} else {
-											j += 2;
-										}
-									} else {
-										j++;
-									}
+								String pinyins0 = converter.getPinyin(splitWords);
+								String[] pinyins = pinyins0.split(" ");
+								for (int j = 0; j < pinyins.length-1; j++) {
+									int leftPinyin = this.model.pinyinString.indexOf(pinyins[j]);
+									int rightPinyin = this.model.pinyinString.indexOf(pinyins[j+1]);
+									//System.out.println(pinyins[j]+" "+pinyins[j+1]);
+									if (leftPinyin >= 0 && rightPinyin >= 0) {
+										this.pinyinCount[leftPinyin][rightPinyin]++;
+									}	
 								}					
 							}
 						}
 				    } catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (IllegalPinyinException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}    
@@ -112,6 +114,6 @@ public class Segment {
 	public static void main(String[] args) {
 		Segment seg = new Segment();
 		seg.loadArticles();
-		seg.exportPinyinTable("output/pinyintabletotal_Paoding.txt");
+		seg.exportPinyinTable("output/pinyintabletotal_Paoding3.txt");
 	}
 }
