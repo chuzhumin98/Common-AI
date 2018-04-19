@@ -13,7 +13,6 @@ import org.apache.lucene.analysis.Token;
 import org.apache.lucene.analysis.TokenStream;
 import org.mira.lucene.analysis.IK_CAnalyzer;
 
-import com.chenlb.mmseg4j.analysis.MaxWordAnalyzer;
 import com.mindflow.py4j.PinyinConverter;
 import com.mindflow.py4j.exception.IllegalPinyinException;
 
@@ -44,6 +43,7 @@ public class Segment {
 				Scanner input = new Scanner(new File(ExportModel.datasetPath+ExportModel.datasetName[i]), "utf-8");
 				Analyzer analyzer = new IK_CAnalyzer();
 				//Analyzer analyzer = new PaodingAnalyzer(); 
+				int readLines = 0; //已经处理的行数
 				while (input.hasNextLine()) {
 					JSONObject record = JSONObject.fromObject(input.nextLine());
 					//System.out.println(record);
@@ -76,10 +76,13 @@ public class Segment {
 						e.printStackTrace();
 					} catch (IllegalPinyinException e) {
 						// TODO Auto-generated catch block
-						e.printStackTrace();
+						//e.printStackTrace();
 					}    
 				    reader.close();  
-					
+					readLines++;
+					if (readLines % 1000 == 0) {
+						System.out.println("has read "+readLines +" lines in " + ExportModel.datasetName[i]);
+					}
 				}
 				System.out.println("end for read "+ExportModel.datasetName[i]);
 			} catch (FileNotFoundException e) {
@@ -111,9 +114,29 @@ public class Segment {
 		}
 	}
 	
+	/**
+	 * 参数格式 xxx.jar (-拼音汉字表路径   -一二级汉字路径  -训练新闻文件夹路径  -输出结果路径)
+	 * 后面的参数都为可选参数
+	 * 
+	 * @param args
+	 */
 	public static void main(String[] args) {
+		System.out.println("this is Segment.java");
+		String outPath = "output/pinyintabletotal_IKC3.txt";
+		if (args.length >= 1) {
+			ExportModel.wordPinyinListPath = args[0];
+		}
+		if (args.length >= 2) {
+			ExportModel.wordListPath = args[1];
+		}
+		if (args.length >= 3) {
+			ExportModel.datasetPath = args[2];
+		}
+		if (args.length >= 4) {
+			outPath = args[3];
+		}
 		Segment seg = new Segment();
 		seg.loadArticles();
-		seg.exportPinyinTable("output/pinyintabletotal_Paoding3.txt");
+		seg.exportPinyinTable(outPath);
 	}
 }

@@ -25,7 +25,7 @@ public class ExportModel {
 	public static String wordPinyinListPath = "data/pinyin-hanzi.txt"; //拼音汉字表
 	public static String[] datasetName = {"2016-01.txt", "2016-02.txt", "2016-03.txt", "2016-04.txt", "2016-05.txt",
 			"2016-06.txt", "2016-07.txt", "2016-08.txt", "2016-09.txt", "2016-10.txt", "2016-11.txt"}; //训练数据集的名字
-	public static String datasetPath = "input/sina_news/"; //训练数据集的路径
+	public static String datasetPath = "input\\sina_news\\"; //训练数据集的路径
 	private static ExportModel model;
 	
 	public ArrayList<Character> wordList; //词汇表
@@ -128,6 +128,7 @@ public class ExportModel {
 		for (int i = 0; i < this.datasetName.length; i++) {
 			try {
 				Scanner input = new Scanner(new File(ExportModel.datasetPath+ExportModel.datasetName[i]), "utf-8");
+				int readLines = 0; //记录已经读取行数
 				while (input.hasNextLine()) {
 					JSONObject record = JSONObject.fromObject(input.nextLine());
 					//System.out.println(record);
@@ -161,6 +162,10 @@ public class ExportModel {
 						}
 				    }
 				    reader.close();
+				    readLines++;
+				    if (readLines % 1000 == 0) {
+				    	System.out.println("has read "+readLines +" lines in " + ExportModel.datasetName[i]);
+				    }
 				}
 				System.out.println("end for read "+ExportModel.datasetName[i]);
 			} catch (FileNotFoundException e) {

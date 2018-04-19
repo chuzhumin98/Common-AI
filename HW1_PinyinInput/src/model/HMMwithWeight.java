@@ -17,10 +17,10 @@ import net.sf.json.JSONObject;
 public class HMMwithWeight {
 	public static String eryuanTablePath = "output/eryuantabletotal_3.txt"; //二元表的位置
 	public static String wordPinyinListPath = "data/pinyin-hanzi.txt"; //拼音汉字表
-	public static String pinyinTablePath = "output/pinyintabletotal_IKC2.txt"; //拼音转换表
+	public static String pinyinTablePath = "output/pinyintabletotal_Paoding2.txt"; //拼音转换表
 	
 	public static String inputPath = "data/input.txt"; //输入文件
-	public static String outputPath = "data/output61.txt"; //输出文件
+	public static String outputPath = "data/output72.txt"; //输出文件
 	
 	public int wordSize;
 	public String[] wordList; //词汇表
@@ -224,7 +224,7 @@ public class HMMwithWeight {
 						newIndex = predPoint[i][newIndex];
 						maxProbString = this.wordList[newIndex] + maxProbString;
 					}
-					System.out.println(maxProbString);
+					System.out.println(maxProbString+" "+predProb.get(totalMaxIndex));
 					output.println(maxProbString);
 				}
 			}

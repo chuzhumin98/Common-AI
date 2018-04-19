@@ -18,7 +18,7 @@ public class HMM {
 	public static String wordPinyinListPath = "data/pinyin-hanzi.txt"; //拼音汉字表
 	
 	public static String inputPath = "data/input.txt"; //输入文件
-	public static String outputPath = "data/output.txt"; //输出文件
+	public static String outputPath = "data/output03.txt"; //输出文件
 	
 	public int wordSize;
 	public String[] wordList; //词汇表
@@ -170,7 +170,8 @@ public class HMM {
 						newIndex = predPoint[i][newIndex];
 						maxProbString = this.wordList[newIndex] + maxProbString;
 					}
-					System.out.println(maxProbString);
+					System.out.println(maxProbString+" "+predProb.get(totalMaxIndex));
+					
 					output.println(maxProbString);
 				}
 			}
