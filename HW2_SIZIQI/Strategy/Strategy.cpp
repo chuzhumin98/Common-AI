@@ -1,16 +1,18 @@
 #include <iostream>
 #include <ctime>
 #include <cmath>
+#include <cstdlib>
 #include <conio.h>
 #include <atlstr.h>
 #include "Point.h"
 #include "Strategy.h"
 #include "TreeNode.h"
+#include "Judge.h"
 
 using namespace std;
 
 //type=1:查看该位置是否对我方有所威胁;type=2:查看我方对对方是否有威胁
-bool hasThreadInPoint(int x, int y, const int M, const int N, int** board, const int* top, const int noX, const int noY, int type) {
+bool hasThreadInPoint(int x, int y, const int M, const int N, int** board, int type) {
 	//考虑纵向连成线
 	int bottomIndex = x; //最底端是1的位置
 	while (bottomIndex < M-1) {
@@ -107,6 +109,7 @@ bool hasThreadInPoint(int x, int y, const int M, const int N, int** board, const
 extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const int* top, const int* _board, 
 	const int lastX, const int lastY, const int noX, const int noY){
 	clock_t startTime = clock();
+	srand((unsigned)time(NULL)); 
 
 	/*
 		不要更改这段代码
@@ -138,7 +141,7 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 	bool hasThread = false;
 	for (int i = 0; i < N; i++) {
 		if (top[i] > 0) {
-			if (hasThreadInPoint(top[i]-1, i, M, N, board, top, noX, noY, 2)) {
+			if (hasThreadInPoint(top[i]-1, i, M, N, board, 2)) {
 				//有威胁位置直接下在威胁位置上
 				x = top[i]-1;
 				y = i;
@@ -151,7 +154,7 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 	if (!hasThread) {
 		for (int i = 0; i < N; i++) {
 			if (top[i] > 0) {
-				if (hasThreadInPoint(top[i]-1, i, M, N, board, top, noX, noY, 1)) {
+				if (hasThreadInPoint(top[i]-1, i, M, N, board, 1)) {
 					//有威胁位置直接下在威胁位置上
 					x = top[i]-1;
 					y = i;
@@ -191,13 +194,23 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 			}
 			int currentIndex = 0; //当前所在状态的下标
 			while (true) {
+				if (isTie(N, currentTop)) { //判断是否为平局的状态
+					int backIndex = currentIndex; //以现在的index作为回溯的起点
+						while (true) {
+							states[backIndex]->winTimes += 0.5; //平局则我方赢的次数加0.5
+							states[backIndex]->totalTimes++;
+							backIndex = states[backIndex]->father;
+							if (backIndex == -1) {
+								break; //回溯到根节点后退出循环
+							}
+						}
+						break; //回溯完成后终止此轮试探
+				}
 				if (states[currentIndex]->isMyStep) {
 					bool hasSucceedPoint = false; //有制胜点
 					for (int i = 0; i < N; i++) {
 						if (currentTop[i] > 0) {
-							if (hasThreadInPoint(currentTop[i]-1, i, M, N, currentBoard, currentTop, noX, noY, 2)) {
-								x = currentTop[i]-1;
-								y = i;
+							if (hasThreadInPoint(currentTop[i]-1, i, M, N, currentBoard, 2)) {
 								hasSucceedPoint = true;
 								break;
 							}
@@ -216,6 +229,11 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 						break; //回溯完成后终止此轮试探
 					} else { //没有制胜点时，则根据蒙特卡洛搜索的公式，找到下一个状态的节点
 						double* topProb = new double [N]; //存储各列位置上的概率大小
+						int* topIndex = new int [N]; //各个节点位置在children数组中的index,-1表示不在数组中
+						for (int i = 0; i < N; i++) {
+							topIndex[i] = -1;
+						}
+						//先赋上初始概率
 						double zeroProb = sqrt(log(1+states[0]->totalTimes) / epsilon); //未被扩展节点的零概率值
 						for (int i = 0; i < N; i++) {
 							if (currentTop[i] > 0) {
@@ -224,6 +242,45 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 								topProb[i] = 0.0; //不可拓展节点的概率则赋为0
 							}
 						}
+						//利用已经扩展过的信息
+						for (int i = 0; i < states[currentIndex]->childrenMaxIndex; i++) {
+							int childIndex = states[currentIndex]->children[i]; //子节点的index
+							int childTopIndex = states[childIndex]->point->y;
+							topIndex[childTopIndex] = i; //记录该位置上的子节点对应index为i
+							double thisProb = states[childIndex]->winTimes / (epsilon + states[childIndex]->totalTimes) + 
+								C * sqrt(log(1+states[0]->totalTimes) / (epsilon+states[childIndex]->totalTimes)); //计算该处实际的概率
+							topProb[childTopIndex] = thisProb; //替换掉默认的概率
+						}
+						//对概率进行归一化
+						double totalProb = 0.0;
+						for (int i = 0; i < N; i++) {
+							totalProb += topProb[i];
+						}
+						for (int i = 0; i < N; i++) {
+							topProb[i] /= totalProb;
+						}
+						//取随机数进行下一层的扩展
+						double randNum = rand() / double(RAND_MAX);
+						int nextStep = 0; //下一步的y坐标
+						double nowTotalProb = 0.0;
+						for (int i = 0; i < N; i++) {
+							nowTotalProb += topProb[i];
+							if (randNum <= nowTotalProb) {
+								nextStep = i;
+								break; //找到了下一步扩展的位置
+							}
+						}
+						if (topIndex[nextStep] != -1) {
+							currentIndex = states[currentIndex]->children[topIndex[nextStep]]; //找到了下一个目标的位置
+						} else {
+							states[stateSize] = new TreeNode(currentTop[nextStep]-1, nextStep, false, currentIndex); //下一步轮到对方下了
+							states[currentIndex]->children[states[currentIndex]->childrenMaxIndex] = stateSize;
+							states[currentIndex]->childrenMaxIndex++;
+							currentIndex = stateSize;
+							stateSize++;	
+						}
+						delete []topProb;
+						delete []topIndex;
 					}
 				}
 			}
