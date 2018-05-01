@@ -128,7 +128,7 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 		该部分对参数使用没有限制，为了方便实现，你可以定义自己新的类、.h文件、.cpp文件
 	*/
 	//Add your own code below
-	//AllocConsole();
+	AllocConsole();
 	/*
 	for (int i = 0; i < M; i++) {
 		for (int j = 0; j < N; j++) {
@@ -166,8 +166,8 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 	}
 	//第三步，如果都没有的话，则考虑进行蒙特卡洛搜索
 	if (!hasThread) {
-		const int STATE_NUM = 2000000;
-		double C = 1.0; //在蒙特卡洛搜索中的系数C
+		const int STATE_NUM = 4000000;
+		double C = 1.2; //在蒙特卡洛搜索中的系数C
 		double epsilon = 0.1; //放在分母上避免为0的调整项
 		TreeNode** states = new TreeNode* [STATE_NUM];
 		states[0] = new TreeNode(-1, -1, true, -1); //根节点的父节点设为-1
@@ -178,11 +178,15 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 		for (int i = 0; i < M; i++) {
 			currentBoard[i] = new int [N];
 		}
+		int countCalculate = 0;
 		while (true) {
-			clock_t nowTime = clock();
-			if (nowTime - startTime >= 2.5 * CLOCKS_PER_SEC || stateSize >= STATE_NUM) {
-				break; //达到时间阈值或数组已经填满后即停止扩展
+			if (countCalculate > 10000 && countCalculate % 100 == 0) {
+				clock_t nowTime = clock();
+				if (nowTime - startTime >= 2.5 * CLOCKS_PER_SEC || stateSize >= STATE_NUM-300) {
+					break; //达到时间阈值或数组已经填满后即停止扩展
+				}
 			}
+			countCalculate++;
 			//_cprintf("%d\n", nowTime);
 			//初始化为最初的状态
 			for (int i = 0; i < N; i++) {
@@ -212,21 +216,18 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 
 				if (states[currentIndex]->isMyStep) {
 					bool hasSucceedPoint = false; //有制胜点
-					for (int i = 0; i < N; i++) {
-						if (currentTop[i] > 0) {
-							if (hasThreadInPoint(currentTop[i]-1, i, M, N, currentBoard, 2)) {
-								hasSucceedPoint = true;
-								break;
-							}
-						}
+					
+					if (currentIndex != 0 && userWin(states[currentIndex]->point->x, states[currentIndex]->point->y, M, N, currentBoard)) {
+						hasSucceedPoint = true;
 					}
+					
 					if (hasSucceedPoint) { //当出现制胜点时向上回溯结果
 
 						//_cprintf("start to do backing in my turn.\n");
 
 						int backIndex = currentIndex; //以现在的index作为回溯的起点
 						while (true) {
-							states[backIndex]->winTimes++;
+							//states[backIndex]->winTimes++;
 							states[backIndex]->totalTimes++;
 							backIndex = states[backIndex]->father;
 							if (backIndex == -1) {
@@ -235,6 +236,8 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 						}
 						break; //回溯完成后终止此轮试探
 					} else { //没有制胜点时，则根据蒙特卡洛搜索的公式，找到下一个状态的节点
+
+
 						//_cprintf("expand in my turn.\n");
 						double* topProb = new double [N]; //存储各列位置上的概率大小
 						int* topIndex = new int [N]; //各个节点位置在children数组中的index,-1表示不在数组中
@@ -315,18 +318,16 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 					}
 				} else {
 					bool hasSucceedPoint = false; //有制胜点
-					for (int i = 0; i < N; i++) {
-						if (currentTop[i] > 0) {
-							if (hasThreadInPoint(currentTop[i]-1, i, M, N, currentBoard, 1)) {
-								hasSucceedPoint = true;
-								break;
-							}
-						}
+					
+					if (currentIndex != 0 && machineWin(states[currentIndex]->point->x, states[currentIndex]->point->y, M, N, currentBoard)) {
+						hasSucceedPoint = true;
 					}
+					
 					if (hasSucceedPoint) { //当出现制胜点时向上回溯结果
 						//_cprintf("start to do backing in against turn.\n");
 						int backIndex = currentIndex; //以现在的index作为回溯的起点
 						while (true) {
+							states[backIndex]->winTimes++;
 							states[backIndex]->totalTimes++;
 							backIndex = states[backIndex]->father;
 							if (backIndex == -1) {
@@ -424,7 +425,15 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 		x = states[maxIndex]->point->x;
 		y = states[maxIndex]->point->y;
 
-		for (int i = 0; i < stateSize; i++) {
+		_cprintf("eta:%f,count:%d\n",maxEta,countCalculate);
+
+
+		delete []currentTop;
+		for (int i = 0; i < M; i++) {
+			delete []currentBoard[i];
+		}
+		delete []currentBoard;
+		for (int i = 0; i < STATE_NUM; i++) {
 			delete states[i];
 		}
 		delete []states;
