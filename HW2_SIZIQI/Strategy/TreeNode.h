@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TREENODE_H_
+#define TREENODE_H_
 #include "Point.h"
 class TreeNode
 {
@@ -17,4 +18,4 @@ public:
 	TreeNode(int x, int y, bool isMySteps, int fatherIndex);
 	~TreeNode(void);
 };
-
+#endif

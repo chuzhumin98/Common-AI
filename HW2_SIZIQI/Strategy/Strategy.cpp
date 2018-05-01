@@ -167,7 +167,7 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 	//第三步，如果都没有的话，则考虑进行蒙特卡洛搜索
 	if (!hasThread) {
 		const int STATE_NUM = 4000000;
-		double C = 1.2; //在蒙特卡洛搜索中的系数C
+		double C = 2; //在蒙特卡洛搜索中的系数C
 		double epsilon = 0.1; //放在分母上避免为0的调整项
 		TreeNode** states = new TreeNode* [STATE_NUM];
 		states[0] = new TreeNode(-1, -1, true, -1); //根节点的父节点设为-1
@@ -178,9 +178,11 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 		for (int i = 0; i < M; i++) {
 			currentBoard[i] = new int [N];
 		}
+		double* topProb = new double [N]; //存储各列位置上的概率大小
+		int* topIndex = new int [N]; //各个节点位置在children数组中的index,-1表示不在数组中
 		int countCalculate = 0;
 		while (true) {
-			if (countCalculate > 10000 && countCalculate % 100 == 0) {
+			if (countCalculate > 10000 && countCalculate % 10 == 0) {
 				clock_t nowTime = clock();
 				if (nowTime - startTime >= 2.5 * CLOCKS_PER_SEC || stateSize >= STATE_NUM-300) {
 					break; //达到时间阈值或数组已经填满后即停止扩展
@@ -239,8 +241,6 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 
 
 						//_cprintf("expand in my turn.\n");
-						double* topProb = new double [N]; //存储各列位置上的概率大小
-						int* topIndex = new int [N]; //各个节点位置在children数组中的index,-1表示不在数组中
 						for (int i = 0; i < N; i++) {
 							topIndex[i] = -1;
 						}
@@ -313,8 +313,6 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 							_cprintf("\n");
 						}
 						*/
-						delete []topProb;
-						delete []topIndex;
 					}
 				} else {
 					bool hasSucceedPoint = false; //有制胜点
@@ -337,8 +335,6 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 						break; //回溯完成后终止此轮试探
 					} else { //没有制胜点时，则根据蒙特卡洛搜索的公式，找到下一个状态的节点
 						//_cprintf("expand in against turn.\n");
-						double* topProb = new double [N]; //存储各列位置上的概率大小
-						int* topIndex = new int [N]; //各个节点位置在children数组中的index,-1表示不在数组中
 						for (int i = 0; i < N; i++) {
 							topIndex[i] = -1;
 						}
@@ -406,8 +402,6 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 							_cprintf("\n");
 						}
 						*/
-						delete []topProb;
-						delete []topIndex;
 					}
 				}
 			}
@@ -427,6 +421,9 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 
 		_cprintf("eta:%f,count:%d\n",maxEta,countCalculate);
 
+
+		delete []topProb;
+		delete []topIndex;
 
 		delete []currentTop;
 		for (int i = 0; i < M; i++) {
