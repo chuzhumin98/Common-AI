@@ -128,7 +128,7 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 		该部分对参数使用没有限制，为了方便实现，你可以定义自己新的类、.h文件、.cpp文件
 	*/
 	//Add your own code below
-	//AllocConsole();
+	AllocConsole();
 	/*
 	for (int i = 0; i < M; i++) {
 		for (int j = 0; j < N; j++) {
@@ -270,10 +270,100 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 								break; //找到了下一步扩展的位置
 							}
 						}
+						//实实在在体现的对战局之中
+						if (noX == currentTop[nextStep]-2 && noY == nextStep) {
+							currentTop[nextStep] -= 2; //如果上一位置是禁忌区域，那么top-2
+						} else {
+							currentTop[nextStep]--;
+						}
+						currentBoard[currentTop[nextStep]-1][nextStep] = 2; //在这里走上一格
+						if (topIndex[nextStep] != -1) {
+							currentIndex = states[currentIndex]->children[topIndex[nextStep]]; //找到了下一个目标的位置
+
+						} else {
+							states[stateSize] = new TreeNode(currentTop[nextStep]-1, nextStep, false, currentIndex); //下一步轮到对方下了
+							states[currentIndex]->children[states[currentIndex]->childrenMaxIndex] = stateSize;
+							states[currentIndex]->childrenMaxIndex++;
+							currentIndex = stateSize;
+							stateSize++;	
+						}
+						delete []topProb;
+						delete []topIndex;
+					}
+				} else {
+					bool hasSucceedPoint = false; //有制胜点
+					for (int i = 0; i < N; i++) {
+						if (currentTop[i] > 0) {
+							if (hasThreadInPoint(currentTop[i]-1, i, M, N, currentBoard, 1)) {
+								hasSucceedPoint = true;
+								break;
+							}
+						}
+					}
+					if (hasSucceedPoint) { //当出现制胜点时向上回溯结果
+						int backIndex = currentIndex; //以现在的index作为回溯的起点
+						while (true) {
+							states[backIndex]->totalTimes++;
+							backIndex = states[backIndex]->father;
+							if (backIndex == -1) {
+								break; //回溯到根节点后退出循环
+							}
+						}
+						break; //回溯完成后终止此轮试探
+					} else { //没有制胜点时，则根据蒙特卡洛搜索的公式，找到下一个状态的节点
+						double* topProb = new double [N]; //存储各列位置上的概率大小
+						int* topIndex = new int [N]; //各个节点位置在children数组中的index,-1表示不在数组中
+						for (int i = 0; i < N; i++) {
+							topIndex[i] = -1;
+						}
+						//先赋上初始概率
+						double zeroProb = sqrt(log(1+states[0]->totalTimes) / epsilon); //未被扩展节点的零概率值
+						for (int i = 0; i < N; i++) {
+							if (currentTop[i] > 0) {
+								topProb[i] = zeroProb; //先将可扩展节点的概率都赋为零概率值
+							} else {
+								topProb[i] = 0.0; //不可拓展节点的概率则赋为0
+							}
+						}
+						//利用已经扩展过的信息
+						for (int i = 0; i < states[currentIndex]->childrenMaxIndex; i++) {
+							int childIndex = states[currentIndex]->children[i]; //子节点的index
+							int childTopIndex = states[childIndex]->point->y;
+							topIndex[childTopIndex] = i; //记录该位置上的子节点对应index为i
+							double thisProb = (states[childIndex]->totalTimes - states[childIndex]->winTimes) / (epsilon + states[childIndex]->totalTimes) + 
+								C * sqrt(log(1+states[0]->totalTimes) / (epsilon+states[childIndex]->totalTimes)); //计算该处实际的概率
+							topProb[childTopIndex] = thisProb; //替换掉默认的概率
+						}
+						//对概率进行归一化
+						double totalProb = 0.0;
+						for (int i = 0; i < N; i++) {
+							totalProb += topProb[i];
+						}
+						for (int i = 0; i < N; i++) {
+							topProb[i] /= totalProb;
+						}
+						//取随机数进行下一层的扩展
+						double randNum = rand() / double(RAND_MAX);
+						int nextStep = 0; //下一步的y坐标
+						double nowTotalProb = 0.0;
+						for (int i = 0; i < N; i++) {
+							nowTotalProb += topProb[i];
+							if (randNum <= nowTotalProb) {
+								nextStep = i;
+								break; //找到了下一步扩展的位置
+							}
+						}
+						//实实在在体现的对战局之中
+						if (noX == currentTop[nextStep]-2 && noY == nextStep) {
+							currentTop[nextStep] -= 2; //如果上一位置是禁忌区域，那么top-2
+						} else {
+							currentTop[nextStep]--;
+						}
+						currentBoard[currentTop[nextStep]-1][nextStep] = 1; //在这里走上一格
 						if (topIndex[nextStep] != -1) {
 							currentIndex = states[currentIndex]->children[topIndex[nextStep]]; //找到了下一个目标的位置
 						} else {
-							states[stateSize] = new TreeNode(currentTop[nextStep]-1, nextStep, false, currentIndex); //下一步轮到对方下了
+							states[stateSize] = new TreeNode(currentTop[nextStep]-1, nextStep, true, currentIndex); //下一步轮到对方下了
 							states[currentIndex]->children[states[currentIndex]->childrenMaxIndex] = stateSize;
 							states[currentIndex]->childrenMaxIndex++;
 							currentIndex = stateSize;
