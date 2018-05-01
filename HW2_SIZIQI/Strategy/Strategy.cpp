@@ -1,5 +1,6 @@
 #include <iostream>
 #include <ctime>
+#include <cmath>
 #include <conio.h>
 #include <atlstr.h>
 #include "Point.h"
@@ -23,13 +24,9 @@ bool hasThreadInPoint(int x, int y, const int M, const int N, int** board, const
 		return true;
 	} 
 	//考虑横向连成线
-	int liveQi = 0; //两边位置活棋的个数，活棋个数为2时，需要提前进行防守了
 	int leftIndex = y; //最左端是1的位置
 	while (leftIndex > 0) {
 		if (board[x][leftIndex-1] != type) {
-			if (board[x][leftIndex-1] == 0 && top[leftIndex-1]-1 == x && (x != noX || leftIndex-1 != noY)) {
-				liveQi++;
-			}
 			break;
 		}
 		leftIndex--;
@@ -37,28 +34,18 @@ bool hasThreadInPoint(int x, int y, const int M, const int N, int** board, const
 	int rightIndex = y; //最右端是1的位置
 	while (rightIndex < N-1) {
 		if (board[x][rightIndex+1] != type) {
-			if (board[x][rightIndex+1] == 0 && top[rightIndex+1]-1 == x && (x != noX || rightIndex+1 != noY)) {
-				liveQi++;
-			}
 			break;
 		}
 		rightIndex++;
 	}
 	//_cprintf("(%d,%d) = %d\n", x, y, rightIndex-leftIndex+1);
-	if (liveQi == 2 && type == 1) { 
-		rightIndex++; //如果活棋的个数为2，则需要提前一步加紧预防
-	}
 	if (rightIndex - leftIndex >= 3) {
 		return true;
 	}
 	//考虑正斜线连成线
-	liveQi = 0; //两边位置活棋的个数，活棋个数为2时，需要提前进行防守了
 	int leftDelta = 0; //向左端拓展的个数
 	while (y - leftDelta > 0 && x - leftDelta > 0) {
 		if (board[x-leftDelta-1][y-leftDelta-1] != type) {
-			if (board[x-leftDelta-1][y-leftDelta-1] == 0 && top[y-leftDelta-1]-1 == x-leftDelta-1 && (x-leftDelta-1 != noX || y-leftDelta-1 != noY)) {
-				liveQi++;
-			}
 			break;
 		}
 		leftDelta++;
@@ -66,28 +53,18 @@ bool hasThreadInPoint(int x, int y, const int M, const int N, int** board, const
 	int rightDelta = 0; //向右端扩展的个数
 	while (y + rightDelta < N-1 && x + rightDelta < M-1) {
 		if (board[x+rightDelta+1][y+rightDelta+1] != type) {
-			if (board[x+rightDelta+1][y+rightDelta+1] == 0 && top[y+rightDelta+1]-1 == x+rightDelta+1 && (x+rightDelta+1 != noX || y+rightDelta+1 != noY)) {
-				liveQi++;
-			}
 			break;
 		}
 		rightDelta++;
 	}
 	//_cprintf("(%d,%d) = %d\n", x, y, rightIndex-leftIndex+1);
-	if (liveQi == 2 && type == 1) { 
-		rightDelta++; //如果活棋的个数为2，则需要提前一步加紧预防
-	}
 	if (rightDelta + leftDelta >= 3) {
 		return true;
 	}
 	//考虑反斜线连成线
-	liveQi = 0; //两边位置活棋的个数，活棋个数为2时，需要提前进行防守了
 	leftDelta = 0; //向左端拓展的个数
 	while (y - leftDelta > 0 && x + leftDelta < M-1) {
 		if (board[x+leftDelta+1][y-leftDelta-1] != type) {
-			if (board[x+leftDelta+1][y-leftDelta-1] == 0 && top[y-leftDelta-1]-1 == x+leftDelta+1 && (x+leftDelta+1 != noX || y-leftDelta-1 != noY)) {
-				liveQi++;
-			}
 			break;
 		}
 		leftDelta++;
@@ -95,17 +72,11 @@ bool hasThreadInPoint(int x, int y, const int M, const int N, int** board, const
 	rightDelta = 0; //向右端扩展的个数
 	while (y + rightDelta < N-1 && x - rightDelta > 0) {
 		if (board[x-rightDelta-1][y+rightDelta+1] != type) {
-			if (board[x-rightDelta-1][y+rightDelta+1] == 0 && top[y+rightDelta+1]-1 == x-rightDelta-1 && (x-rightDelta-1 != noX || y+rightDelta+1 != noY)) {
-				liveQi++;
-			}
 			break;
 		}
 		rightDelta++;
 	}
 	//_cprintf("(%d,%d) = %d\n", x, y, rightIndex-leftIndex+1);
-	if (liveQi == 2 && type == 1) { 
-		rightDelta++; //如果活棋的个数为2，则需要提前一步加紧预防
-	}
 	if (rightDelta + leftDelta >= 3) {
 		return true;
 	}
@@ -190,18 +161,71 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 			}
 		}
 	}
-
+	//第三步，如果都没有的话，则考虑进行蒙特卡洛搜索
 	if (!hasThread) {
 		const int STATE_NUM = 2000000;
+		double C = 1.0; //在蒙特卡洛搜索中的系数C
+		double epsilon = 0.1; //放在分母上避免为0的调整项
 		TreeNode** states = new TreeNode* [STATE_NUM];
 		states[0] = new TreeNode(-1, -1, true, -1); //根节点的父节点设为-1
+		states[0]->isLeaf = false; //显然根节点不是叶子节点，否则游戏已经结束或在前两步已经处理掉了
 		int stateSize = 1; //状态空间的大小
 		int* currentTop = new int [N]; //当前的top信息
-
+		int** currentBoard = new int* [M]; //记录在尝试过程中当前的棋局信息
+		for (int i = 0; i < M; i++) {
+			currentBoard[i] = new int [N];
+		}
 		while (true) {
 			clock_t nowTime = clock();
 			if (nowTime - startTime >= 2.5 * CLOCKS_PER_SEC || stateSize >= STATE_NUM) {
 				break; //达到时间阈值或数组已经填满后即停止扩展
+			}
+			//初始化为最初的状态
+			for (int i = 0; i < N; i++) {
+				currentTop[i] = top[i];
+			}
+			for (int i = 0; i < M; i++) {
+				for (int j = 0; j < N; j++) {
+					currentBoard[i][j] = board[i][j];
+				}
+			}
+			int currentIndex = 0; //当前所在状态的下标
+			while (true) {
+				if (states[currentIndex]->isMyStep) {
+					bool hasSucceedPoint = false; //有制胜点
+					for (int i = 0; i < N; i++) {
+						if (currentTop[i] > 0) {
+							if (hasThreadInPoint(currentTop[i]-1, i, M, N, currentBoard, currentTop, noX, noY, 2)) {
+								x = currentTop[i]-1;
+								y = i;
+								hasSucceedPoint = true;
+								break;
+							}
+						}
+					}
+					if (hasSucceedPoint) { //当出现制胜点时向上回溯结果
+						int backIndex = currentIndex; //以现在的index作为回溯的起点
+						while (true) {
+							states[backIndex]->winTimes++;
+							states[backIndex]->totalTimes++;
+							backIndex = states[backIndex]->father;
+							if (backIndex == -1) {
+								break; //回溯到根节点后退出循环
+							}
+						}
+						break; //回溯完成后终止此轮试探
+					} else { //没有制胜点时，则根据蒙特卡洛搜索的公式，找到下一个状态的节点
+						double* topProb = new double [N]; //存储各列位置上的概率大小
+						double zeroProb = sqrt(log(1+states[0]->totalTimes) / epsilon); //未被扩展节点的零概率值
+						for (int i = 0; i < N; i++) {
+							if (currentTop[i] > 0) {
+								topProb[i] = zeroProb; //先将可扩展节点的概率都赋为零概率值
+							} else {
+								topProb[i] = 0.0; //不可拓展节点的概率则赋为0
+							}
+						}
+					}
+				}
 			}
 		}
 
