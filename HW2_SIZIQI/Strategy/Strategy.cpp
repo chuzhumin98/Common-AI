@@ -288,11 +288,30 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 								break; //找到了下一步扩展的位置
 							}
 						}
+						if (currentTop[nextStep] <= 0) {
+							for (int i = N-1; i >= 0; i--) {
+								if (top[i] > 0) {
+									nextStep = i;
+									break;
+								}
+							}
+						}
+						if (currentTop[nextStep] <= 0) {
+							_cprintf("randNum:%f\n",randNum);
+							for (int i = 0; i < N; i++) {
+								_cprintf("%f ", topProb[i]);
+							}
+							_cprintf("\n");
+							_cprintf("error next Step in %d\n", nextStep);
+						}
 						//实实在在体现的对战局之中
 						if (topIndex[nextStep] != -1) {
 							currentIndex = states[currentIndex]->children[topIndex[nextStep]]; //找到了下一个目标的位置
 
 						} else {
+							if (stateSize >= STATE_NUM) {
+								break;
+							}
 							states[stateSize] = new TreeNode(currentTop[nextStep]-1, nextStep, false, currentIndex); //下一步轮到对方下了
 							states[currentIndex]->children[states[currentIndex]->childrenMaxIndex] = stateSize;
 							states[currentIndex]->childrenMaxIndex++;
@@ -378,10 +397,29 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 								break; //找到了下一步扩展的位置
 							}
 						}
+						if (currentTop[nextStep] <= 0) {
+							for (int i = N-1; i >= 0; i--) {
+								if (top[i] > 0) {
+									nextStep = i;
+									break;
+								}
+							}
+						}
+						if (currentTop[nextStep] <= 0) {
+							_cprintf("randNum:%f\n",randNum);
+							for (int i = 0; i < N; i++) {
+								_cprintf("%f ", topProb[i]);
+							}
+							_cprintf("\n");
+							_cprintf("error next Step in %d\n", nextStep);
+						}
 						//实实在在体现的对战局之中
 						if (topIndex[nextStep] != -1) {
 							currentIndex = states[currentIndex]->children[topIndex[nextStep]]; //找到了下一个目标的位置
 						} else {
+							if (stateSize >= STATE_NUM) {
+								break;
+							}
 							states[stateSize] = new TreeNode(currentTop[nextStep]-1, nextStep, true, currentIndex); //下一步轮到对方下了
 							states[currentIndex]->children[states[currentIndex]->childrenMaxIndex] = stateSize;
 							states[currentIndex]->childrenMaxIndex++;
