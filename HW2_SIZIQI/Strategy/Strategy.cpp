@@ -167,7 +167,7 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 	//第三步，如果都没有的话，则考虑进行蒙特卡洛搜索
 	if (!hasThread) {
 		const int STATE_NUM = 4000000;
-		double C = 2; //在蒙特卡洛搜索中的系数C
+		double C = 1.414; //在蒙特卡洛搜索中的系数C
 		double epsilon = 0.1; //放在分母上避免为0的调整项
 		TreeNode** states = new TreeNode* [STATE_NUM];
 		states[0] = new TreeNode(-1, -1, true, -1); //根节点的父节点设为-1
@@ -248,7 +248,7 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 						double zeroProb = sqrt(log(1.01+states[0]->totalTimes) / epsilon); //未被扩展节点的零概率值
 						for (int i = 0; i < N; i++) {
 							if (currentTop[i] > 0) {
-								topProb[i] = zeroProb; //先将可扩展节点的概率都赋为零概率值
+								topProb[i] = 10000; //先将可扩展节点的概率都赋为零概率值
 							} else {
 								topProb[i] = 0.0; //不可拓展节点的概率则赋为0
 							}
@@ -290,7 +290,7 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 						}
 						if (currentTop[nextStep] <= 0) {
 							for (int i = N-1; i >= 0; i--) {
-								if (top[i] > 0) {
+								if (currentTop[i] > 0) {
 									nextStep = i;
 									break;
 								}
@@ -361,7 +361,7 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 						double zeroProb = sqrt(log(1.01+states[0]->totalTimes) / epsilon); //未被扩展节点的零概率值
 						for (int i = 0; i < N; i++) {
 							if (currentTop[i] > 0) {
-								topProb[i] = zeroProb; //先将可扩展节点的概率都赋为零概率值
+								topProb[i] = 10000; //先将可扩展节点的概率都赋为零概率值
 							} else {
 								topProb[i] = 0.0; //不可拓展节点的概率则赋为0
 							}
@@ -399,7 +399,7 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 						}
 						if (currentTop[nextStep] <= 0) {
 							for (int i = N-1; i >= 0; i--) {
-								if (top[i] > 0) {
+								if (currentTop[i] > 0) {
 									nextStep = i;
 									break;
 								}
@@ -444,11 +444,24 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 				}
 			}
 		}
-
+		double alpha = 0.7;
 		int maxIndex = states[0]->children[0]; //记录胜率最大的状态
-		double maxEta = states[states[0]->children[0]]->winTimes / (0.1 + states[states[0]->children[0]]->totalTimes); //胜率
-		for (int i = 1; i < states[0]->childrenMaxIndex; i++) {
-			double myEta = states[states[0]->children[i]]->winTimes / (0.1 + states[states[0]->children[i]]->totalTimes);
+		double maxEta = 0; //胜率
+		for (int i = 0; i < states[0]->childrenMaxIndex; i++) {
+			int indexThis = states[0]->children[i];
+			double myEtathis = states[indexThis]->winTimes / (0.1 + states[indexThis]->totalTimes);
+			double myEtasucc = 2;
+			for (int j = 0; j < states[indexThis]->childrenMaxIndex; j++) {
+				int indexSucc = states[indexThis]->children[j];
+				double myEtaSuccThis = states[indexSucc]->winTimes / (0.1 + states[indexSucc]->totalTimes);
+				if (myEtaSuccThis < myEtasucc) {
+					myEtasucc = myEtaSuccThis;
+				}
+			}
+			if (myEtasucc > 1.01) { //没有下面的节点时
+				myEtasucc = 0.1; //给一个比较小的值
+			}
+			double myEta = alpha * myEtasucc + (1-alpha) * myEtathis;
 			if (maxEta < myEta) {
 				maxEta = myEta;
 				maxIndex = states[0]->children[i];
@@ -457,6 +470,12 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 		x = states[maxIndex]->point->x;
 		y = states[maxIndex]->point->y;
 
+		/*
+		for (int i = 0; i < states[0]->childrenMaxIndex; i++) {
+			double eta = states[states[0]->children[i]]->winTimes / (0.1 + states[states[0]->children[i]]->totalTimes);
+			_cprintf("%d:%f/%d=%f\n",states[states[0]->children[i]]->point->y, states[states[0]->children[i]]->winTimes,states[states[0]->children[i]]->totalTimes, eta);
+		}
+		*/
 		_cprintf("eta:%f,count:%d\n",maxEta,countCalculate);
 
 
