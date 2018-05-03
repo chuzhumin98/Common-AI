@@ -128,7 +128,7 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 		该部分对参数使用没有限制，为了方便实现，你可以定义自己新的类、.h文件、.cpp文件
 	*/
 	//Add your own code below
-	AllocConsole();
+	//AllocConsole();
 	/*
 	for (int i = 0; i < M; i++) {
 		for (int j = 0; j < N; j++) {
@@ -171,7 +171,6 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 		double epsilon = 0.1; //放在分母上避免为0的调整项
 		TreeNode** states = new TreeNode* [STATE_NUM];
 		states[0] = new TreeNode(-1, -1, true, -1); //根节点的父节点设为-1
-		states[0]->isLeaf = false; //显然根节点不是叶子节点，否则游戏已经结束或在前两步已经处理掉了
 		int stateSize = 1; //状态空间的大小
 		int* currentTop = new int [N]; //当前的top信息
 		int** currentBoard = new int* [M]; //记录在尝试过程中当前的棋局信息
@@ -296,6 +295,7 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 								}
 							}
 						}
+						/*
 						if (currentTop[nextStep] <= 0) {
 							_cprintf("randNum:%f\n",randNum);
 							for (int i = 0; i < N; i++) {
@@ -304,6 +304,7 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 							_cprintf("\n");
 							_cprintf("error next Step in %d\n", nextStep);
 						}
+						*/
 						//实实在在体现的对战局之中
 						if (topIndex[nextStep] != -1) {
 							currentIndex = states[currentIndex]->children[topIndex[nextStep]]; //找到了下一个目标的位置
@@ -405,6 +406,7 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 								}
 							}
 						}
+						/*
 						if (currentTop[nextStep] <= 0) {
 							_cprintf("randNum:%f\n",randNum);
 							for (int i = 0; i < N; i++) {
@@ -413,6 +415,7 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 							_cprintf("\n");
 							_cprintf("error next Step in %d\n", nextStep);
 						}
+						*/
 						//实实在在体现的对战局之中
 						if (topIndex[nextStep] != -1) {
 							currentIndex = states[currentIndex]->children[topIndex[nextStep]]; //找到了下一个目标的位置
@@ -476,7 +479,7 @@ extern "C" __declspec(dllexport) Point* getPoint(const int M, const int N, const
 			_cprintf("%d:%f/%d=%f\n",states[states[0]->children[i]]->point->y, states[states[0]->children[i]]->winTimes,states[states[0]->children[i]]->totalTimes, eta);
 		}
 		*/
-		_cprintf("eta:%f,count:%d\n",maxEta,countCalculate);
+		//_cprintf("eta:%f,count:%d\n",maxEta,countCalculate);
 
 
 		delete []topProb;

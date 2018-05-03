@@ -8,7 +8,6 @@ TreeNode::TreeNode(void)
 	this->childrenMaxIndex = 0; //该位置取不到
 	this->winTimes = 0.0;
 	this->totalTimes = 0;
-	this->isLeaf = false; //默认认为不是叶子节点
 }
 
 
@@ -20,7 +19,6 @@ TreeNode::TreeNode(int x, int y, bool isMySteps, int fatherIndex) {
 	this->father = fatherIndex;
 	this->winTimes = 0.0;
 	this->totalTimes = 0;
-	this->isLeaf = false;
 }
 
 TreeNode::~TreeNode(void)
