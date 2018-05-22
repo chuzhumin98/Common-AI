@@ -1,5 +1,6 @@
 import numpy as np
-from LoadData import LoadData
+from LoadData import LoadTrainData
+from LoadData import LoadTestData
 import tensorflow as tf
 
 # 将weight做初始化
@@ -41,9 +42,23 @@ def nextBatch(trainData, trainLabels, batchSize):
             high = (i+1) * batchSize
             yield [trainData[indexArray[low:high],:], trainLabels[indexArray[low:high],:]] # 返回一个batch
 
+# 由于内存有限，采用分段预测再拼接的方式
+def splitBatchPredict(sess, predictionResult, x, testData, keepProb):
+    totalTestPrediction = np.array([])
+    predictBatchSize = 5000  # 预测时每次batch的大小
+    splitNum = len(testData) // predictBatchSize
+    for i in range(splitNum):
+        testPredictionResult = sess.run(predictionResult, feed_dict={x: testData[i*predictBatchSize:(i+1)*predictBatchSize,:], keepProb: 1.0})
+        totalTestPrediction.extend(testPredictionResult)
+    if (splitNum*predictBatchSize > len(testData)):
+        testPredictionResult = sess.run(predictionResult, feed_dict={x: testData[splitNum*predictBatchSize:len(testData),:], keepProb: 1.0})
+        totalTestPrediction.extend(testPredictionResult)
+    return totalTestPrediction
+
+
 if __name__ == '__main__':
     # 导入输入训练集
-    trainData, trainLabels = LoadData('train.csv')
+    trainData, trainLabels = LoadTrainData('train.csv')
     trainLabelsOneHot = oneHotLabels(trainLabels)
     trainData = trainData.astype(np.float32)
     trainData = trainData/255
@@ -64,17 +79,17 @@ if __name__ == '__main__':
     hPool1 = maxPool(2, hConv1)
 
     # 第二个卷积层变量
-    WConv2 = initWeightVarible([5, 5, 16, 32]) #卷积核用的是5*5，从8个对应到10个
-    bConv2 = initBiasVariable([32])
+    WConv2 = initWeightVarible([5, 5, 16, 40]) #卷积核用的是5*5，从8个对应到10个
+    bConv2 = initBiasVariable([40])
 
     # 第二个pooling层
     hConv2 = tf.nn.relu(conv2d(hPool1, WConv2) + bConv2) #非线性变换
     hPool2 = maxPool(2, hConv2)
 
     # 全连接层
-    Wfc1 = initWeightVarible([7 * 7 * 32, 200]) #全连接层
+    Wfc1 = initWeightVarible([7 * 7 * 40, 200]) #全连接层
     bfc1 = initBiasVariable([200])
-    hPool2Flat = tf.reshape(hPool2, [-1, 7 * 7 * 32]) #将第二个pooling层展开
+    hPool2Flat = tf.reshape(hPool2, [-1, 7 * 7 * 40]) #将第二个pooling层展开
     hfc1 = tf.nn.relu(tf.matmul(hPool2Flat, Wfc1) + bfc1) #非线性变换
 
     # 对全连接层进行dropout操作
@@ -92,6 +107,7 @@ if __name__ == '__main__':
     trainStep = tf.train.AdamOptimizer(1e-4).minimize(crossEntropy) #采用Adam优化
 
     correctPrediction = tf.equal(tf.argmax(yConv, axis=1), tf.argmax(y, axis=1)) #生成正确与否的数组，求sum即分类正确的个数
+    predictionResult = tf.argmax(yConv, axis=1) #生成预测结果集
     accuracy = tf.reduce_mean(tf.cast(correctPrediction, tf.float32)) #计算平均值即分类准确率，用于模型结果的观测
 
     init = tf.global_variables_initializer() #变量的初始化
@@ -99,10 +115,9 @@ if __name__ == '__main__':
     batchGen = nextBatch(trainData, trainLabelsOneHot, 50) #选取50的batch的生成器
     batchGenitor = batchGen.__iter__()
 
-
     with tf.Session() as sess:
         sess.run(init)
-        for i in range(10000):
+        for i in range(500):
             batchData, batchLabels = batchGenitor.__next__() #生成一个batch
             if (i+1) % 100 == 0:
                 trainAccuacy = sess.run(accuracy, feed_dict={x: batchData, y: batchLabels, keepProb: 1.0}) #观测不得影响模型
@@ -111,14 +126,18 @@ if __name__ == '__main__':
                 #print(yConvs)
             sess.run(trainStep, feed_dict={x: batchData, y: batchLabels, keepProb: 0.5})
 
-        trainAccuacy = sess.run(accuracy, feed_dict={x: trainData, y:trainLabels, keepProb:1.0}) #对所有样本的训练准确率
-        print('total train accuracy = ', trainAccuacy)
+        #trainAccuacy = sess.run(accuracy, feed_dict={x: trainData[0:10000], y:trainLabelsOneHot[0:10000], keepProb:1.0}) #对所有样本的训练准确率
+        #print('total train accuracy = ', trainAccuacy)
+        #trainPredictionResult = sess.run(predictionResult, feed_dict={x: trainData[0:10000], keepProb: 1.0})
+        #print(trainPredictionResult)
 
         # 导入测试集
-        #testData, testLabels = LoadData('test.csv')
-        #print('test data size:', len(testLabels))
+        testData = LoadTestData('test.csv')
+        print('test data size:', len(testData))
 
-        # accuacy on test
-        #print('test accuracy = ',sess.run(accuracy,feed_dict={x: mnist.test.images, y: mnist.test.labels, keepProb: 1.0}))
+        # 输出预测结果
+        testPrediction = splitBatchPredict(sess, predictionResult, x, testData, keepProb)
+        print(testPrediction)
+
 
 
