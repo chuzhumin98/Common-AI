@@ -2,6 +2,7 @@ import numpy as np
 from LoadData import LoadTrainData
 from LoadData import LoadTestData
 import tensorflow as tf
+import pandas as pd
 
 # 将weight做初始化
 def initWeightVarible(shape):
@@ -49,10 +50,11 @@ def splitBatchPredict(sess, predictionResult, x, testData, keepProb):
     splitNum = len(testData) // predictBatchSize
     for i in range(splitNum):
         testPredictionResult = sess.run(predictionResult, feed_dict={x: testData[i*predictBatchSize:(i+1)*predictBatchSize,:], keepProb: 1.0})
-        totalTestPrediction.extend(testPredictionResult)
-    if (splitNum*predictBatchSize > len(testData)):
+        totalTestPrediction = np.concatenate((totalTestPrediction, testPredictionResult),axis=0)
+    if (splitNum*predictBatchSize < len(testData)):
         testPredictionResult = sess.run(predictionResult, feed_dict={x: testData[splitNum*predictBatchSize:len(testData),:], keepProb: 1.0})
-        totalTestPrediction.extend(testPredictionResult)
+        totalTestPrediction = np.concatenate((totalTestPrediction, testPredictionResult), axis=0)
+    totalTestPrediction = totalTestPrediction.astype(np.int32)
     return totalTestPrediction
 
 
@@ -117,7 +119,7 @@ if __name__ == '__main__':
 
     with tf.Session() as sess:
         sess.run(init)
-        for i in range(500):
+        for i in range(10000):
             batchData, batchLabels = batchGenitor.__next__() #生成一个batch
             if (i+1) % 100 == 0:
                 trainAccuacy = sess.run(accuracy, feed_dict={x: batchData, y: batchLabels, keepProb: 1.0}) #观测不得影响模型
@@ -138,6 +140,8 @@ if __name__ == '__main__':
         # 输出预测结果
         testPrediction = splitBatchPredict(sess, predictionResult, x, testData, keepProb)
         print(testPrediction)
+        predictFrame = pd.DataFrame(np.transpose([range(1,len(testPrediction)+1), testPrediction]), columns=['ImageId','Label'])
+        predictFrame.to_csv('result/CNNv1.csv', sep=',', index=None)
 
 
 
