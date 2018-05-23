@@ -66,10 +66,10 @@ if __name__ == '__main__':
     yConv = tf.nn.softmax(tf.matmul(hfc1Drop, Wfc2) + bfc2)
     y = tf.placeholder(tf.float32, [None, 10])  # 占位符，实际样本标签
 
-    crossEntropy = -tf.reduce_sum(y * tf.log(yConv))  # 计算交叉熵
+    crossEntropy = -tf.reduce_sum(y * tf.log(yConv+1e-10))  # 计算交叉熵
 
     # 设置优化算法及学习率
-    boundaries = [2000, 6000, 10000, 14000, 17000]
+    boundaries = [1000, 2500, 4500, 6000, 8000]
     learing_rates = [0.001, 0.0005, 0.0002, 0.0001, 0.00005, 0.00002]
     iterNum = tf.placeholder(tf.int32)
     learing_rate = tf.train.piecewise_constant(iterNum, boundaries=boundaries, values=learing_rates)  # 学习率阶梯状下降
@@ -86,7 +86,7 @@ if __name__ == '__main__':
 
     with tf.Session() as sess:
         sess.run(init)
-        for i in range(20001):
+        for i in range(10001):
             batchData, batchLabels = batchGenitor.__next__()  # 生成一个batch
             if i % 100 == 0:
                 trainAccuacy = calculateSamplingAccuracy(sess, accuracy, x, trainData, y, trainLabels, keepProb)  # 观测不得影响模型
