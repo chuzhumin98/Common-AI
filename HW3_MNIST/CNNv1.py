@@ -76,6 +76,16 @@ def calculateAccuracy(sess, accuracy, x, testData, y, testLabels, keepProb):
         predictCorrectCount += testPredictionResult * (high-low)
     return predictCorrectCount / len(testData)
 
+# 计算大规模时部分样本的准确率,其中，limit为采样上限
+def calculateSamplingAccuracy(sess, accuracy, x, testData, y, testLabels, keepProb, limit=1000):
+    size = len(testData)  # 总的样本点个数
+    indexArray = np.array(range(size), dtype=int)  # 下标数组
+    np.random.shuffle(indexArray)
+    testSize = min(size, limit) #选取的检测数据个数
+    return sess.run(accuracy, feed_dict={x: testData[indexArray[0:testSize], :], y: testLabels[indexArray[0:testSize],:],
+                                                             keepProb: 1.0})
+
+
 if __name__ == '__main__':
     # 导入输入训练集
     trainData, trainLabels = LoadTrainData('train.csv')

@@ -84,9 +84,9 @@ if __name__ == '__main__':
         for i in range(201):
             batchData, batchLabels = batchGenitor.__next__()  # 生成一个batch
             if i % 100 == 0:
-                trainAccuacy = calculateAccuracy(sess, accuracy, x, trainData, y, trainLabels, keepProb)  # 观测不得影响模型
+                trainAccuacy = calculateSamplingAccuracy(sess, accuracy, x, trainData, y, trainLabels, keepProb)  # 观测不得影响模型
                 print('step #', i, ' train accuracy = ', trainAccuacy)
-                validateAccuacy = calculateAccuracy(sess, accuracy, x, validateData, y, validateLabels, keepProb)  # 观测不得影响模型
+                validateAccuacy = calculateSamplingAccuracy(sess, accuracy, x, validateData, y, validateLabels, keepProb)  # 观测不得影响模型
                 print('step #', i, ' validate accuracy = ', validateAccuacy)
                 iterList.append(i)
                 trainAccuacyList.append(trainAccuacy)
