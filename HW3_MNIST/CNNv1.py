@@ -57,13 +57,31 @@ def splitBatchPredict(sess, predictionResult, x, testData, keepProb):
     totalTestPrediction = totalTestPrediction.astype(np.int32)
     return totalTestPrediction
 
+# 计算大规模时的准确率
+def calculateAccuracy(sess, accuracy, x, testData, y, testLabels, keepProb):
+    predictBatchSize = 5000  # 预测时每次batch的大小
+    splitNum = len(testData) // predictBatchSize
+    predictCorrectCount = 0
+    for i in range(splitNum):
+        low = i*predictBatchSize
+        high = (i+1)*predictBatchSize
+        testPredictionResult = sess.run(accuracy,feed_dict={x: testData[low:high, :], y: testLabels[low:high],
+                                                   keepProb: 1.0})
+        predictCorrectCount += testPredictionResult*predictBatchSize
+    if (splitNum * predictBatchSize < len(testData)):
+        low = splitNum*predictBatchSize
+        high = len(testData)
+        testPredictionResult = sess.run(accuracy, feed_dict={x: testData[low:high, :], y: testLabels[low:high],
+                                                             keepProb: 1.0})
+        predictCorrectCount += testPredictionResult * (high-low)
+    return predictCorrectCount / len(testData)
 
 if __name__ == '__main__':
     # 导入输入训练集
     trainData, trainLabels = LoadTrainData('train.csv')
     trainLabelsOneHot = oneHotLabels(trainLabels)
     trainData = trainData.astype(np.float32)
-    trainData = trainData/255
+    trainData = trainData/255 #归一化
     trainLabelsOneHot = trainLabelsOneHot.astype(np.float32)
 
     print('train data size:',len(trainLabels))
@@ -119,7 +137,7 @@ if __name__ == '__main__':
 
     with tf.Session() as sess:
         sess.run(init)
-        for i in range(10000):
+        for i in range(20000):
             batchData, batchLabels = batchGenitor.__next__() #生成一个batch
             if (i+1) % 100 == 0:
                 trainAccuacy = sess.run(accuracy, feed_dict={x: batchData, y: batchLabels, keepProb: 1.0}) #观测不得影响模型
@@ -141,7 +159,7 @@ if __name__ == '__main__':
         testPrediction = splitBatchPredict(sess, predictionResult, x, testData, keepProb)
         print(testPrediction)
         predictFrame = pd.DataFrame(np.transpose([range(1,len(testPrediction)+1), testPrediction]), columns=['ImageId','Label'])
-        predictFrame.to_csv('result/CNNv1.csv', sep=',', index=None)
+        predictFrame.to_csv('result/CNNv2.csv', sep=',', index=None)
 
 
 
