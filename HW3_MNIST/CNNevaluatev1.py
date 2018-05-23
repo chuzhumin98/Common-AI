@@ -68,7 +68,12 @@ if __name__ == '__main__':
 
     crossEntropy = -tf.reduce_sum(y * tf.log(yConv))  # 计算交叉熵
 
-    trainStep = tf.train.AdamOptimizer(1e-4).minimize(crossEntropy)  # 采用Adam优化
+    # 设置优化算法及学习率
+    boundaries = [2000, 6000, 10000, 14000, 17000]
+    learing_rates = [0.001, 0.0005, 0.0002, 0.0001, 0.00005, 0.00002]
+    iterNum = tf.placeholder(tf.int32)
+    learing_rate = tf.train.piecewise_constant(iterNum, boundaries=boundaries, values=learing_rates)  # 学习率阶梯状下降
+    trainStep = tf.train.AdamOptimizer(learning_rate=learing_rate).minimize(crossEntropy)  # 采用Adam优化
 
     correctPrediction = tf.equal(tf.argmax(yConv, axis=1), tf.argmax(y, axis=1))  # 生成正确与否的数组，求sum即分类正确的个数
     predictionResult = tf.argmax(yConv, axis=1)  # 生成预测结果集
@@ -81,7 +86,7 @@ if __name__ == '__main__':
 
     with tf.Session() as sess:
         sess.run(init)
-        for i in range(201):
+        for i in range(20001):
             batchData, batchLabels = batchGenitor.__next__()  # 生成一个batch
             if i % 100 == 0:
                 trainAccuacy = calculateSamplingAccuracy(sess, accuracy, x, trainData, y, trainLabels, keepProb)  # 观测不得影响模型
@@ -93,8 +98,9 @@ if __name__ == '__main__':
                 validateAccurayList.append(validateAccuacy)
                 # yConvs = sess.run(yConv, feed_dict={x: batchData, y: batchLabels, keepProb: 1.0})
                 # print(yConvs)
-            sess.run(trainStep, feed_dict={x: batchData, y: batchLabels, keepProb: 0.5})
+            sess.run(trainStep, feed_dict={x: batchData, y: batchLabels, keepProb: 0.5, iterNum: i})
+            #print(sess.run(iterNum, feed_dict={x:batchData, iterNum:i}),'-',sess.run(learing_rate,feed_dict={x:batchData, iterNum:i}))
 
         accuracyFrame = pd.DataFrame(np.transpose([iterList, trainAccuacyList, validateAccurayList]), columns=['iter','train','validate'])
         print(accuracyFrame)
-        accuracyFrame.to_csv('evaluate/accuracyVSiter_CNN.csv',index=None)
+        accuracyFrame.to_csv('evaluate/accuracyVSiter_CNN_2.csv',index=None)
