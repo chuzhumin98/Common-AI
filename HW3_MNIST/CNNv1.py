@@ -21,18 +21,6 @@ def conv2d(x, W):
 def maxPool(n, x):
     return tf.nn.max_pool(x, ksize=[1, n, n, 1], strides=[1, n, n, 1], padding='SAME')
 
-# 选取下一个batch，按照batchSize来选取,返回[trainData, trainLabels]大小为batchSize
-def nextBatch(trainData, trainLabels, batchSize):
-    size = len(trainLabels)
-    slices = size // batchSize #一轮的多少
-    while True:
-        indexArray = np.array(range(size), dtype=int)  # 下标数组
-        np.random.shuffle(indexArray) # shuffle一下index
-        for i in range(slices):
-            low = i * batchSize
-            high = (i+1) * batchSize
-            yield [trainData[indexArray[low:high],:], trainLabels[indexArray[low:high],:]] # 返回一个batch
-
 # 由于内存有限，采用分段预测再拼接的方式
 def splitBatchPredict(sess, predictionResult, x, testData, keepProb):
     totalTestPrediction = np.array([])
@@ -122,7 +110,7 @@ if __name__ == '__main__':
     yConv = tf.nn.softmax(tf.matmul(hfc1Drop, Wfc2) + bfc2)
     y = tf.placeholder(tf.float32, [None, 10]) #占位符，实际样本标签
 
-    crossEntropy = -tf.reduce_sum(y * tf.log(yConv)) # 计算交叉熵
+    crossEntropy = -tf.reduce_sum(y * tf.log(yConv+1e-10)) # 计算交叉熵
 
     trainStep = tf.train.AdamOptimizer(1e-4).minimize(crossEntropy) #采用Adam优化
 
@@ -160,6 +148,3 @@ if __name__ == '__main__':
         print(testPrediction)
         predictFrame = pd.DataFrame(np.transpose([range(1,len(testPrediction)+1), testPrediction]), columns=['ImageId','Label'])
         predictFrame.to_csv('result/CNNv2.csv', sep=',', index=None)
-
-
-

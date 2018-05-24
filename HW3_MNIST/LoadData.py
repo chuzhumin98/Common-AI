@@ -21,3 +21,15 @@ def oneHotLabels(labels):
         labelsOneHot[labels[:] == i,i] = 1
     print(labelsOneHot)
     return labelsOneHot
+
+# 选取下一个batch，按照batchSize来选取,返回[trainData, trainLabels]大小为batchSize
+def nextBatch(trainData, trainLabels, batchSize):
+    size = len(trainLabels)
+    slices = size // batchSize #一轮的多少
+    while True:
+        indexArray = np.array(range(size), dtype=int)  # 下标数组
+        np.random.shuffle(indexArray) # shuffle一下index
+        for i in range(slices):
+            low = i * batchSize
+            high = (i+1) * batchSize
+            yield [trainData[indexArray[low:high],:], trainLabels[indexArray[low:high],:]] # 返回一个batch
