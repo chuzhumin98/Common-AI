@@ -50,8 +50,12 @@ if __name__ == '__main__':
     # 计算最后一层是softmax层的cross entropy
     crossEntropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=yhat, labels=y))
 
-    #trainStep = tf.train.GradientDescentOptimizer(1e-2).minimize(crossEntropy)
-    trainStep = tf.train.AdamOptimizer(1e-2).minimize(crossEntropy)  # 采用Adam优化
+    # 设置优化算法及学习率
+    boundaries = [4000, 7000, 10000, 15000, 20000]
+    learing_rates = [0.001, 0.0005, 0.0002, 0.0001, 0.00005, 0.00002]
+    iterNum = tf.placeholder(tf.int32)
+    learing_rate = tf.train.piecewise_constant(iterNum, boundaries=boundaries, values=learing_rates)  # 学习率阶梯状下降
+    trainStep = tf.train.AdamOptimizer(learning_rate=learing_rate).minimize(crossEntropy)  # 采用Adam优化
 
     correctPrediction = tf.equal(tf.argmax(yhat, axis=1), tf.argmax(y, axis=1))  # 生成正确与否的数组，求sum即分类正确的个数
     predictionResult = tf.argmax(yhat, axis=1)  # 生成预测结果集
@@ -64,12 +68,12 @@ if __name__ == '__main__':
 
     with tf.Session() as sess:
         sess.run(init)
-        for i in range(10000):
+        for i in range(15000):
             batchData, batchLabels = batchGenitor.__next__() #生成一个batch
             if (i+1) % 100 == 0:
                 trainAccuacy = sess.run(accuracy, feed_dict={x: batchData, y: batchLabels}) #观测不得影响模型
                 print('step #', i+1, ' train accuracy = ', trainAccuacy)
-            sess.run(trainStep, feed_dict={x: batchData, y: batchLabels})
+            sess.run(trainStep, feed_dict={x: batchData, y: batchLabels, iterNum:i})
 
         # 导入测试集
         testData = LoadTestData('test.csv')
@@ -79,4 +83,4 @@ if __name__ == '__main__':
         testPrediction = splitBatchPredict(sess, predictionResult, x, testData)
         print(testPrediction)
         predictFrame = pd.DataFrame(np.transpose([range(1,len(testPrediction)+1), testPrediction]), columns=['ImageId','Label'])
-        predictFrame.to_csv('result/MLPv1.csv', sep=',', index=None)
+        predictFrame.to_csv('result/MLPv2.csv', sep=',', index=None)
