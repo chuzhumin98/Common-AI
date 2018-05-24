@@ -1,36 +1,12 @@
+import numpy as np
+from LoadData import LoadTrainData
+from LoadData import LoadTestData
+import tensorflow as tf
+import pandas as pd
 from CNNv1 import *
 
-#随机划分训练集和验证集
-#    参数samples：所有样本数据
-#    参数samplesLabels：样本所对应的标签
-#    return：[训练集数据, 训练集标签, 验证集数据, 验证集标签]
-def splitDatas(samples, samplesLabels):
-    size = len(samplesLabels) #总的样本点个数
-    indexArray = np.array(range(size), dtype=int) #下标数组
-    np.random.shuffle(indexArray)
-    #size = size // 10 #仅挑1/10进行研究
-    validateStart = size * 4 // 5 #按照4:1的比例划分划分训练集和验证集
-    trainData = samples[indexArray[0:validateStart]]
-    trainLabel = samplesLabels[indexArray[0:validateStart]]
-    validateData = samples[indexArray[validateStart:size]]
-    validateLabel = samplesLabels[indexArray[validateStart:size]]
-    return [trainData, trainLabel, validateData, validateLabel]
 
-if __name__ == '__main__':
-    iterList = [] #迭代次数列表
-    trainAccuacyList = [] #训练集上正确率列表
-    validateAccurayList = [] #验证集上正确率列表
-
-    # 导入输入训练集
-    Data, Labels = LoadTrainData('train.csv')
-    LabelsOneHot = oneHotLabels(Labels)
-    Data = Data.astype(np.float32)
-    Data = Data / 255
-    LabelsOneHot = LabelsOneHot.astype(np.float32)
-    trainData, trainLabels, validateData, validateLabels = splitDatas(Data, LabelsOneHot)
-
-    print('train data size:', len(trainLabels))
-
+def doCNNv2(trainData, trainLabelsOneHot, testData):
     x = tf.placeholder(tf.float32, [None, 784])  # 输入数据占位符
     xImage = tf.reshape(x, [-1, 28, 28, 1])  # reshape处理
 
@@ -66,7 +42,7 @@ if __name__ == '__main__':
     yConv = tf.nn.softmax(tf.matmul(hfc1Drop, Wfc2) + bfc2)
     y = tf.placeholder(tf.float32, [None, 10])  # 占位符，实际样本标签
 
-    crossEntropy = -tf.reduce_sum(y * tf.log(yConv+1e-10))  # 计算交叉熵
+    crossEntropy = -tf.reduce_sum(y * tf.log(yConv + 1e-10))  # 计算交叉熵
 
     # 设置优化算法及学习率
     boundaries = [1000, 2500, 4500, 6000, 8000]
@@ -81,26 +57,58 @@ if __name__ == '__main__':
 
     init = tf.global_variables_initializer()  # 变量的初始化
 
-    batchGen = nextBatch(trainData, trainLabels, 50)  # 选取50的batch的生成器
+    batchGen = nextBatch(trainData, trainLabelsOneHot, 50)  # 选取50的batch的生成器
     batchGenitor = batchGen.__iter__()
 
     with tf.Session() as sess:
         sess.run(init)
-        for i in range(10001):
+        for i in range(10000):
             batchData, batchLabels = batchGenitor.__next__()  # 生成一个batch
-            if i % 100 == 0:
-                trainAccuacy = calculateSamplingAccuracy(sess, accuracy, x, trainData, y, trainLabels, keepProb)  # 观测不得影响模型
-                print('step #', i, ' train accuracy = ', trainAccuacy)
-                validateAccuacy = calculateSamplingAccuracy(sess, accuracy, x, validateData, y, validateLabels, keepProb)  # 观测不得影响模型
-                print('step #', i, ' validate accuracy = ', validateAccuacy)
-                iterList.append(i)
-                trainAccuacyList.append(trainAccuacy)
-                validateAccurayList.append(validateAccuacy)
+            if (i + 1) % 100 == 0:
+                trainAccuacy = sess.run(accuracy, feed_dict={x: batchData, y: batchLabels, keepProb: 1.0})  # 观测不得影响模型
+                print('step #', i + 1, ' train accuracy = ', trainAccuacy)
                 # yConvs = sess.run(yConv, feed_dict={x: batchData, y: batchLabels, keepProb: 1.0})
                 # print(yConvs)
             sess.run(trainStep, feed_dict={x: batchData, y: batchLabels, keepProb: 0.5, iterNum: i})
-            #print(sess.run(iterNum, feed_dict={x:batchData, iterNum:i}),'-',sess.run(learing_rate,feed_dict={x:batchData, iterNum:i}))
+        # 输出预测结果
+        testPrediction = splitBatchPredict(sess, predictionResult, x, testData, keepProb)
+        print(testPrediction)
+        return testPrediction
 
-        accuracyFrame = pd.DataFrame(np.transpose([iterList, trainAccuacyList, validateAccurayList]), columns=['iter','train','validate'])
-        print(accuracyFrame)
-        accuracyFrame.to_csv('evaluate/accuracyVSiter_CNN_5.csv',index=None)
+# 采用bagging算法对CNN进行多次重复标注
+def Bagging(trainData, trainLabelsOneHot, testData, T):
+    size = round(0.7*len(trainData))
+    testPredictions = np.zeros([len(testData), T], dtype=np.int64) #记录各组预测结果
+    for i in range(T):
+        indexArray = np.array(range(len(trainData)), dtype=int)  # 下标数组
+        np.random.shuffle(indexArray)
+        boostrapTrainData = trainData[indexArray[:size],:]
+        boostrapTrainLabels = trainLabelsOneHot[indexArray[:size],:]
+        testPredictions[:,i] = doCNNv2(boostrapTrainData, boostrapTrainLabels, testData)
+    testPrediction = np.zeros([len(testData)], dtype=np.int64)
+    for i in range(len(testPredictions)):
+        testPrediction[i] = np.argmax(np.bincount(testPredictions[i,:]))
+    print(testPrediction)
+    return testPrediction
+
+if __name__ == '__main__':
+    # 导入输入训练集
+    trainData, trainLabels = LoadTrainData('train.csv')
+    trainLabelsOneHot = oneHotLabels(trainLabels)
+    trainData = trainData.astype(np.float32)
+    trainData = trainData/255 #归一化
+    trainLabelsOneHot = trainLabelsOneHot.astype(np.float32)
+
+    print('train data size:',len(trainLabels))
+    # 导入测试集
+    testData = LoadTestData('test.csv')
+    print('test data size:', len(testData))
+
+
+    testPrediction = Bagging(trainData, trainLabelsOneHot, testData, 5)
+    predictFrame = pd.DataFrame(np.transpose([range(1, len(testPrediction) + 1), testPrediction]),
+                                columns=['ImageId', 'Label'])
+    predictFrame.to_csv('result/CNNBaggingv2_2.csv', sep=',', index=None)
+
+
+

@@ -12,3 +12,12 @@ def LoadTrainData(path):
 def LoadTestData(path):
     testData = np.loadtxt(open(path, 'r'), delimiter=',', skiprows=1, dtype=np.int)
     return testData[:,:784]
+
+# 对样本标签进行one hot化
+def oneHotLabels(labels):
+    size = len(labels) #样本点的个数
+    labelsOneHot = np.zeros([size, 10])
+    for i in range(10):
+        labelsOneHot[labels[:] == i,i] = 1
+    print(labelsOneHot)
+    return labelsOneHot

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 if __name__ == '__main__':
-    df1 = pd.read_csv('evaluate/accuracyVSiter_CNN_1.csv', sep=',', encoding='utf-8')
+    df1 = pd.read_csv('evaluate/accuracyVSiter_CNN_2.csv', sep=',', encoding='utf-8')
     print(df1)
 
     plt.figure(0)
@@ -14,7 +14,7 @@ if __name__ == '__main__':
     plt.ylim([0.9, 1.0])
     plt.legend(['train data', 'validate data'],loc='best')
     plt.title('accuracy vs iteration')
-    plt.savefig('image/CNNaccuracyVSiter-1.png', dpi=150)
+    plt.savefig('image/CNNaccuracyVSiter-2.png', dpi=150)
 
     #进行平滑
     size = len(df1['iter'])
@@ -44,4 +44,4 @@ if __name__ == '__main__':
     plt.ylim([0.9, 1.0])
     plt.legend(['train data', 'validate data'], loc='best')
     plt.title('accuracy vs iteration after smoothing')
-    plt.savefig('image/CNNaccuracyVSiter-1_1.png', dpi=150)
+    plt.savefig('image/CNNaccuracyVSiter-2_1.png', dpi=150)

@@ -1,6 +1,5 @@
 import numpy as np
-from LoadData import LoadTrainData
-from LoadData import LoadTestData
+from LoadData import *
 import tensorflow as tf
 import pandas as pd
 
@@ -21,15 +20,6 @@ def conv2d(x, W):
 # 采用最大池化
 def maxPool(n, x):
     return tf.nn.max_pool(x, ksize=[1, n, n, 1], strides=[1, n, n, 1], padding='SAME')
-
-# 对样本标签进行one hot化
-def oneHotLabels(labels):
-    size = len(labels) #样本点的个数
-    labelsOneHot = np.zeros([size, 10])
-    for i in range(10):
-        labelsOneHot[labels[:] == i,i] = 1
-    print(labelsOneHot)
-    return labelsOneHot
 
 # 选取下一个batch，按照batchSize来选取,返回[trainData, trainLabels]大小为batchSize
 def nextBatch(trainData, trainLabels, batchSize):
