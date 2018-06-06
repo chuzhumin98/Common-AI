@@ -5,6 +5,8 @@ from __future__ import division
 import tensorflow as tf
 from LoadData import *
 import pandas as pd
+from CNNevaluatev1 import splitDatas
+from MLPv1 import *
 
 # 由于内存有限，采用分段预测再拼接的方式
 def splitBatchPredict(sess, predictionResult, x, testData, keep_prob, batch_size):
@@ -20,19 +22,33 @@ def splitBatchPredict(sess, predictionResult, x, testData, keep_prob, batch_size
     totalTestPrediction = totalTestPrediction.astype(np.int32)
     return totalTestPrediction
 
+# 计算大规模时部分样本的准确率,其中，limit为采样上限
+def calculateSamplingAccuracy(sess, accuracy, x, testData, y, testLabels, keep_prob, batch_size, limit=1000):
+    size = len(testData)  # 总的样本点个数
+    indexArray = np.array(range(size), dtype=int)  # 下标数组
+    np.random.shuffle(indexArray)
+    testSize = min(size, limit) #选取的检测数据个数
+    return sess.run(accuracy, feed_dict={x: testData[indexArray[0:testSize]], y: testLabels[indexArray[0:testSize]],
+                    keep_prob: 1., batch_size: testSize})
+
 if __name__ == '__main__':
     # 导入输入训练集
-    trainData, trainLabels = LoadTrainData('train.csv')
-    trainLabelsOneHot = oneHotLabels(trainLabels)
-    trainData = trainData.astype(np.float32)
-    trainData = trainData/255 #归一化
-    trainLabelsOneHot = trainLabelsOneHot.astype(np.float32)
+    iterList = []  # 迭代次数列表
+    trainAccuacyList = []  # 训练集上正确率列表
+    validateAccurayList = []  # 验证集上正确率列表
 
-    print('train data size:',len(trainLabels))
+    # 导入输入训练集
+    Data, Labels = LoadTrainData('train.csv')
+    LabelsOneHot = oneHotLabels(Labels)
+    Data = Data.astype(np.float32)
+    Data = Data / 255
+    LabelsOneHot = LabelsOneHot.astype(np.float32)
+    trainData, trainLabels, validateData, validateLabels = splitDatas(Data, LabelsOneHot)
+    print('train data size:', len(trainLabels))
 
     # 定义网络超参数
     learning_rate = 0.001
-    training_iters = 2000
+    training_iters = 5001
     batch_size = tf.placeholder(tf.int32, [])
     display_step = 100
 
@@ -75,11 +91,13 @@ if __name__ == '__main__':
     predictionResult = tf.argmax(pred, axis=1)  # 生成预测结果集
     accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
 
-    batchGen = nextBatch(trainData, trainLabelsOneHot, 50)  # 选取50的batch的生成器
+    batchGen = nextBatch(trainData, trainLabels, 50)  # 选取50的batch的生成器
     batchGenitor = batchGen.__iter__()
 
     # 初始化所有的共享变量
     init = tf.global_variables_initializer()
+    trainData_1 = trainData.reshape([-1, n_steps, n_inputs])
+    validateData_1 = validateData.reshape([-1, n_steps, n_inputs])
 
     # 开启一个训练
     with tf.Session() as sess:
@@ -92,20 +110,18 @@ if __name__ == '__main__':
             batch_xs = batch_xs.reshape([batch_size0, n_steps, n_inputs])
             # 获取批数据
             sess.run(optimizer, feed_dict={x: batch_xs, y: batch_ys, batch_size: batch_size0})
-            if (i+1) % display_step == 0:
-                # 计算精度
-                trainAccuracy = sess.run(accuracy, feed_dict={x: batch_xs, y: batch_ys, keep_prob: 1., batch_size: batch_size0})
-                print('step #', i+1, ' train accuracy = ', trainAccuracy)
+            if i % display_step == 0:
+                trainAccuacy = calculateSamplingAccuracy(sess, accuracy, x, trainData_1, y, trainLabels,
+                                                         keep_prob, batch_size)  # 观测不得影响模型
+                print('step #', i, ' train accuracy = ', trainAccuacy)
+                validateAccuacy = calculateSamplingAccuracy(sess, accuracy, x, validateData_1, y, validateLabels,
+                                                            keep_prob, batch_size)  # 观测不得影响模型
+                print('step #', i, ' validate accuracy = ', validateAccuacy)
+                iterList.append(i)
+                trainAccuacyList.append(trainAccuacy)
+                validateAccurayList.append(validateAccuacy)
 
-        # 导入测试集
-        testData = LoadTestData('test.csv')
-        testData = testData.reshape([-1, n_steps, n_inputs])
-        trainData = trainData.reshape([-1, n_steps, n_inputs])
-        print('test data size:', len(testData))
-
-        # 输出预测结果
-        testPrediction = splitBatchPredict(sess, predictionResult, x, trainData, keep_prob, batch_size)
-        print(testPrediction)
-        predictFrame = pd.DataFrame(np.transpose([range(1, len(testPrediction) + 1), testPrediction]),
-                                    columns=['ImageId', 'Label'])
-        predictFrame.to_csv('result/RNNtestv3.csv', sep=',', index=None)
+        accuracyFrame = pd.DataFrame(np.transpose([iterList, trainAccuacyList, validateAccurayList]),
+                                     columns=['iter', 'train', 'validate'])
+        print(accuracyFrame)
+        accuracyFrame.to_csv('evaluate/accuracyVSiter_RNN_2.csv', index=None)

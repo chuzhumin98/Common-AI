@@ -79,7 +79,7 @@ if __name__ == '__main__':
 
 
     # 第一个卷积层变量
-    WConv1 = initWeightVarible([5, 5, 1, 16]) #卷积核用的是5*5，从1个对应到8个
+    WConv1 = initWeightVarible([5, 5, 1, 16]) #卷积核用的是5*5，从1个对应到16个
     bConv1 = initBiasVariable([16])
 
     # 第一个pooling层
