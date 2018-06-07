@@ -63,7 +63,7 @@ if __name__ == '__main__':
 
     init = tf.global_variables_initializer()  # 变量的初始化
 
-    batchGen = nextBatch(trainData, trainLabelsOneHot, 50)  # 选取50的batch的生成器
+    batchGen = nextBatch(trainData, trainLabelsOneHot, 100)  # 选取50的batch的生成器
     batchGenitor = batchGen.__iter__()
 
     with tf.Session() as sess:
@@ -77,10 +77,11 @@ if __name__ == '__main__':
 
         # 导入测试集
         testData = LoadTestData('test.csv')
+        testData = testData / 255
         print('test data size:', len(testData))
 
         # 输出预测结果
         testPrediction = splitBatchPredict(sess, predictionResult, x, testData)
         print(testPrediction)
         predictFrame = pd.DataFrame(np.transpose([range(1,len(testPrediction)+1), testPrediction]), columns=['ImageId','Label'])
-        predictFrame.to_csv('result/MLPv2.csv', sep=',', index=None)
+        predictFrame.to_csv('result/MLPv3.csv', sep=',', index=None)

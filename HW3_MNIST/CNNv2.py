@@ -87,6 +87,7 @@ if __name__ == '__main__':
 
         # 导入测试集
         testData = LoadTestData('test.csv')
+        testData = testData / 255
         print('test data size:', len(testData))
 
         # 输出预测结果

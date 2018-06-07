@@ -32,7 +32,7 @@ if __name__ == '__main__':
 
     # 定义网络超参数
     learning_rate = 0.001
-    training_iters = 2000
+    training_iters = 5000
     batch_size = tf.placeholder(tf.int32, [])
     display_step = 100
 
@@ -99,13 +99,14 @@ if __name__ == '__main__':
 
         # 导入测试集
         testData = LoadTestData('test.csv')
+        testData = testData / 255 #归一化
         testData = testData.reshape([-1, n_steps, n_inputs])
-        trainData = trainData.reshape([-1, n_steps, n_inputs])
         print('test data size:', len(testData))
 
         # 输出预测结果
-        testPrediction = splitBatchPredict(sess, predictionResult, x, trainData, keep_prob, batch_size)
+        testPrediction = splitBatchPredict(sess, predictionResult, x, testData, keep_prob, batch_size)
         print(testPrediction)
         predictFrame = pd.DataFrame(np.transpose([range(1, len(testPrediction) + 1), testPrediction]),
                                     columns=['ImageId', 'Label'])
-        predictFrame.to_csv('result/RNNtestv3.csv', sep=',', index=None)
+        predictFrame.to_csv('result/RNNv5.csv', sep=',', index=None)
+
